@@ -95,8 +95,32 @@ function parseArgs(argv) {
 
 async function runOriginalGuardedInstall(args) {
   // Find the original guarded_skill_install.mjs from clawsec-suite
-  const suiteDir = path.join(os.homedir(), ".openclaw", "skills", "clawsec-suite");
-  const originalScript = path.join(suiteDir, "scripts", "guarded_skill_install.mjs");
+  // Try multiple possible locations
+  const possiblePaths = [
+    // Current directory (if running from within clawsec-suite)
+    path.join(process.cwd(), "scripts", "guarded_skill_install.mjs"),
+    // Same directory as this enhanced installer
+    path.join(path.dirname(new URL(import.meta.url).pathname), "guarded_skill_install.mjs"),
+    // Standard OpenClaw installation location
+    path.join(os.homedir(), ".openclaw", "skills", "clawsec-suite", "scripts", "guarded_skill_install.mjs"),
+    // Alternative installation location
+    path.join(os.homedir(), ".openclaw-clean", "workspace", "skills", "clawsec-suite", "scripts", "guarded_skill_install.mjs"),
+  ];
+  
+  let originalScript = null;
+  for (const scriptPath of possiblePaths) {
+    try {
+      await fs.access(scriptPath);
+      originalScript = scriptPath;
+      break;
+    } catch {
+      // Continue to next path
+    }
+  }
+  
+  if (!originalScript) {
+    throw new Error(`Original guarded_skill_install.mjs not found. Tried:\n${possiblePaths.map(p => `  - ${p}`).join("\n")}\n\nIs clawsec-suite installed?`);
+  }
   
   try {
     await fs.access(originalScript);

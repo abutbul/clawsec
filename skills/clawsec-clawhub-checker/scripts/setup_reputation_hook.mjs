@@ -7,9 +7,32 @@ import os from "node:os";
 async function main() {
   console.log("Setting up ClawHub reputation checker integration...");
   
-  // Paths
-  const suiteDir = path.join(os.homedir(), ".openclaw", "skills", "clawsec-suite");
-  const checkerDir = path.join(os.homedir(), ".openclaw", "skills", "clawsec-clawhub-checker");
+  // Find clawsec-suite installation directory
+  const possibleSuitePaths = [
+    path.join(process.cwd(), "..", "clawsec-suite"),
+    path.join(os.homedir(), ".openclaw", "skills", "clawsec-suite"),
+    path.join(os.homedir(), ".openclaw-clean", "workspace", "skills", "clawsec-suite"),
+  ];
+  
+  let suiteDir = null;
+  for (const suitePath of possibleSuitePaths) {
+    try {
+      await fs.access(suitePath);
+      suiteDir = suitePath;
+      break;
+    } catch {
+      // Continue to next path
+    }
+  }
+  
+  if (!suiteDir) {
+    throw new Error(`clawsec-suite not found. Tried:\n${possibleSuitePaths.map(p => `  - ${p}`).join("\n")}\n\nInstall with: npx clawhub install clawsec-suite`);
+  }
+  
+  console.log(`✓ Found clawsec-suite at ${suiteDir}`);
+  
+  // Find checker directory (where this script is running from)
+  const checkerDir = path.dirname(new URL(import.meta.url).pathname);
   const hookLibDir = path.join(suiteDir, "hooks", "clawsec-advisory-guardian", "lib");
   
   try {
