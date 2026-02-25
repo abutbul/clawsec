@@ -209,3 +209,46 @@ export interface InstalledSkillRow {
   path: string;
   metadata_json: string; // SkillMetadata as JSON
 }
+
+// Skill Signature Verification Types (Phase 1)
+
+/**
+ * IPC request for skill signature verification
+ */
+export interface VerifySkillSignatureRequest {
+  type: 'verify_skill_signature';
+  requestId: string;
+  groupFolder: string;
+  timestamp: string;
+  packagePath: string;
+  signaturePath: string;
+  publicKeyPem?: string;      // Optional: override default public key
+  allowUnsigned?: boolean;    // Optional: allow missing signature (default: false)
+}
+
+/**
+ * IPC response for skill signature verification
+ */
+export interface VerifySkillSignatureResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    valid: boolean;
+    signer: string;            // 'clawsec' or custom signer identifier
+    packageHash: string;       // SHA-256 of package
+    verifiedAt: string;        // ISO timestamp
+    algorithm: 'Ed25519';
+  };
+  error?: {
+    code: 'SIGNATURE_INVALID' | 'FILE_NOT_FOUND' | 'CRYPTO_ERROR' | 'SERVICE_UNAVAILABLE';
+    details?: any;
+  };
+}
+
+/**
+ * MCP tool parameters for package verification
+ */
+export interface VerifySkillPackageParams {
+  packagePath: string;
+  signaturePath?: string;     // Optional: auto-detects .sig if omitted
+}

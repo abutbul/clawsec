@@ -4,6 +4,7 @@
  */
 
 import crypto from 'crypto';
+import fs from 'fs';
 import https from 'https';
 import { ChecksumsManifest } from './types.js';
 
@@ -145,6 +146,135 @@ export function verifySignedPayload(
  */
 export function sha256Hex(content: string | Buffer): string {
   return crypto.createHash('sha256').update(content).digest('hex');
+}
+
+/**
+ * Computes SHA-256 hash of a file.
+ * Convenience wrapper for file-based integrity monitoring and package verification.
+ */
+export function sha256File(filePath: string): string {
+  const data = fs.readFileSync(filePath);
+  return sha256Hex(data);
+}
+
+/**
+ * Loads and validates an Ed25519 public key from PEM format.
+ * @throws {SecurityPolicyError} if PEM format is invalid
+ */
+export function loadPublicKey(pemString: string): crypto.KeyObject {
+  const trimmed = pemString.trim();
+  if (!trimmed.startsWith('-----BEGIN PUBLIC KEY-----')) {
+    throw new SecurityPolicyError('Invalid PEM format: must start with -----BEGIN PUBLIC KEY-----');
+  }
+
+  try {
+    return crypto.createPublicKey(trimmed);
+  } catch (error) {
+    throw new SecurityPolicyError(
+      `Failed to load public key: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Verifies Ed25519 detached signature for a file.
+ * Matches the API of verify_detached_ed25519.mjs from OpenClaw.
+ *
+ * @param dataPath - Path to the file to verify
+ * @param signaturePath - Path to the detached signature file (.sig)
+ * @param publicKeyPem - Ed25519 public key in PEM format
+ * @returns true if signature is valid, false otherwise
+ */
+export function verifyDetachedSignature(
+  dataPath: string,
+  signaturePath: string,
+  publicKeyPem: string
+): boolean {
+  try {
+    const data = fs.readFileSync(dataPath);
+    const signatureRaw = fs.readFileSync(signaturePath, 'utf8');
+    const signature = decodeSignature(signatureRaw);
+
+    if (!signature) return false;
+
+    const publicKey = crypto.createPublicKey(publicKeyPem.trim());
+    return crypto.verify(null, data, publicKey, signature);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Verifies detached signature with detailed error information.
+ * Useful for debugging signature verification failures.
+ *
+ * @param dataPath - Path to the file to verify
+ * @param signaturePath - Path to the detached signature file (.sig)
+ * @param publicKeyPem - Ed25519 public key in PEM format
+ * @returns Object with valid flag and optional error message
+ */
+export function verifyDetachedSignatureWithDetails(
+  dataPath: string,
+  signaturePath: string,
+  publicKeyPem: string
+): { valid: boolean; error?: string } {
+  try {
+    if (!fs.existsSync(dataPath)) {
+      return { valid: false, error: 'Data file not found' };
+    }
+    if (!fs.existsSync(signaturePath)) {
+      return { valid: false, error: 'Signature file not found' };
+    }
+
+    const data = fs.readFileSync(dataPath);
+    const signatureRaw = fs.readFileSync(signaturePath, 'utf8');
+    const signature = decodeSignature(signatureRaw);
+
+    if (!signature) {
+      return { valid: false, error: 'Invalid signature format' };
+    }
+
+    const publicKey = crypto.createPublicKey(publicKeyPem.trim());
+    const valid = crypto.verify(null, data, publicKey, signature);
+
+    return { valid, error: valid ? undefined : 'Signature verification failed' };
+  } catch (error) {
+    return {
+      valid: false,
+      error: `Verification error: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+}
+
+/**
+ * Verifies multiple files against expected hashes.
+ * Returns list of files that don't match their expected hashes.
+ *
+ * @param files - Map of file paths to expected SHA-256 hashes
+ * @returns Array of mismatches with path, expected, and actual hashes
+ */
+export function verifyFileHashes(
+  files: Record<string, string>
+): { path: string; expected: string; actual: string }[] {
+  const mismatches = [];
+
+  for (const [path, expectedHash] of Object.entries(files)) {
+    try {
+      const actualHash = sha256File(path);
+      if (actualHash !== expectedHash) {
+        mismatches.push({ path, expected: expectedHash, actual: actualHash });
+      }
+    } catch (error) {
+      // File missing or unreadable
+      mismatches.push({
+        path,
+        expected: expectedHash,
+        actual: `ERROR: ${error instanceof Error ? error.message : String(error)}`
+      });
+    }
+  }
+
+  return mismatches;
 }
 
 /**
