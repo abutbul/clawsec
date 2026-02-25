@@ -20,7 +20,12 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { glob } from 'glob';
+// glob is available when running in the NanoClaw host environment.
+// For type checking in the clawsec repo, we declare a minimal interface.
+// eslint-disable-next-line @typescript-eslint/no-namespace
+declare namespace glob {
+  function sync(pattern: string, options?: { nodir?: boolean }): string[];
+}
 
 // ============================================================================
 // Types
@@ -132,7 +137,7 @@ function utcNowIso(): string {
 function sha256Hex(data: Buffer | string): string {
   const hash = crypto.createHash('sha256');
   hash.update(data);
-  return hash.hexdigest();
+  return hash.digest('hex');
 }
 
 function sha256File(filePath: string): string {
@@ -645,6 +650,7 @@ export class IntegrityMonitor {
   // Status and Verification
   // --------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getStatus(filePath?: string): any {
     if (!this.baselines) {
       throw new Error('Baselines not loaded');

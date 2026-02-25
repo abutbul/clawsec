@@ -241,7 +241,7 @@ export interface VerifySkillSignatureResponse {
   };
   error?: {
     code: 'SIGNATURE_INVALID' | 'FILE_NOT_FOUND' | 'CRYPTO_ERROR' | 'SERVICE_UNAVAILABLE';
-    details?: any;
+    details?: unknown;
   };
 }
 

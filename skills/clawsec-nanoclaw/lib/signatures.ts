@@ -85,7 +85,7 @@ export async function secureFetch(url: string, options: RequestInit = {}): Promi
 
   return fetch(url, {
     ...options,
-    // @ts-ignore - agent is supported in Node.js fetch
+    // @ts-expect-error - agent is supported in Node.js fetch
     agent,
   });
 }
@@ -478,7 +478,7 @@ export function defaultChecksumsUrl(feedUrl: string): string {
 /**
  * Safely extracts the basename from a URL or file path.
  */
-function safeBasename(urlOrPath: string, fallback: string): string {
+function _safeBasename(urlOrPath: string, fallback: string): string {
   try {
     const parsed = new URL(urlOrPath);
     const pathname = parsed.pathname;

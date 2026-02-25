@@ -49,10 +49,12 @@ export interface VerifyParams {
  */
 export class SkillSignatureVerifier {
   private publicKeyPath: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private logger: any;
 
   constructor(
     publicKeyPath: string = DEFAULT_PUBLIC_KEY_PATH,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     logger?: any
   ) {
     this.publicKeyPath = publicKeyPath;
@@ -191,7 +193,7 @@ export class SkillSignatureVerifier {
     try {
       const keyPem = fs.readFileSync(this.publicKeyPath, 'utf8');
       const keyObject = loadPublicKey(keyPem);
-      const keyDer = keyObject.export({ type: 'spki', format: 'der' });
+      const _keyDer = keyObject.export({ type: 'spki', format: 'der' });
       return `sha256:${sha256File(this.publicKeyPath).substring(0, 16)}`;
     } catch (error) {
       this.logger.error({ error }, 'Failed to compute public key fingerprint');

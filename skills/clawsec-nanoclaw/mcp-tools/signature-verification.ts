@@ -6,6 +6,7 @@
  * This tool verifies Ed25519 signatures on skill packages to prevent supply chain attacks.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';

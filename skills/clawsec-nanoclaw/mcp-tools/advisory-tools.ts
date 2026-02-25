@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * ClawSec Advisory Feed MCP Tools for NanoClaw
  *
@@ -10,6 +11,13 @@
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
+
+// These variables are provided by the host environment (ipc-mcp-stdio.ts)
+// when this code is integrated into the NanoClaw container agent.
+declare const server: { tool: (...args: any[]) => void };
+declare function writeIpcFile(dir: string, data: any): void;
+declare const TASKS_DIR: string;
+declare const groupFolder: string;
 
 // Add these helper functions to the file:
 
@@ -234,7 +242,7 @@ server.tool(
         content: [{
           type: 'text' as const,
           text: JSON.stringify({
-            safe: recommendation === 'install',
+            safe: false, // Always false when advisories exist
             advisories: matchingAdvisories.map((a: any) => ({
               id: a.id,
               severity: a.severity,

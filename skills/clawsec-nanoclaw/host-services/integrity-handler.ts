@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * ClawSec File Integrity Monitoring IPC Handler for NanoClaw Host
  *
@@ -82,7 +83,7 @@ export async function handleIntegrityIpc(
   deps: { integrityService?: IntegrityService },
   logger: any
 ): Promise<void> {
-  const { type, requestId, groupFolder } = task;
+  const { type, requestId, groupFolder: _groupFolder } = task;
 
   if (!deps.integrityService) {
     logger.warn({ task }, 'IntegrityService not available');
@@ -331,19 +332,17 @@ function writeResult(requestId: string, result: any): void {
  * 5. Ensure /workspace/project/data/soul-guardian/ directory exists and is writable
  */
 
-/**
- * Example scheduled task for continuous monitoring:
- *
- * schedule_task({
- *   prompt: `
- *     Run clawsec_check_integrity to check for file tampering.
- *     If drift_detected is true and files were restored, send alert:
- *     "⚠️ SECURITY: Unauthorized changes detected and reverted in:
- *     [list restored files with their paths]
- *     Review patches in /workspace/project/data/soul-guardian/patches/"
- *   `,
- *   schedule_type: 'cron',
- *   schedule_value: '*/30 * * * *',  // Every 30 minutes
- *   context_mode: 'isolated'
- * });
- */
+// Example scheduled task for continuous monitoring:
+//
+// schedule_task({
+//   prompt: `
+//     Run clawsec_check_integrity to check for file tampering.
+//     If drift_detected is true and files were restored, send alert:
+//     "SECURITY: Unauthorized changes detected and reverted in:
+//     [list restored files with their paths]
+//     Review patches in /workspace/project/data/soul-guardian/patches/"
+//   `,
+//   schedule_type: 'cron',
+//   schedule_value: '*/30 * * * *',  // Every 30 minutes
+//   context_mode: 'isolated'
+// });

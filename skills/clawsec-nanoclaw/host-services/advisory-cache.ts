@@ -350,7 +350,7 @@ export function findAdvisoryMatches(
         // Parse affected specifier: skill-name or skill-name@version
         const atIndex = affected.lastIndexOf('@');
         const affectedName = atIndex > 0 ? affected.slice(0, atIndex) : affected;
-        const affectedVersion = atIndex > 0 ? affected.slice(atIndex + 1) : '*';
+        const _affectedVersion = atIndex > 0 ? affected.slice(atIndex + 1) : '*';
 
         // Match by name or directory name
         if (affectedName === skill.name || affectedName === skill.dirName) {

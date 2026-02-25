@@ -11,13 +11,17 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 
-// IPC communication helper (should already exist in ipc-mcp-stdio.ts)
-// function writeIpcFile(dir: string, data: any): void {
-//   const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}.json`;
-//   fs.writeFileSync(path.join(dir, filename), JSON.stringify(data));
-// }
+// These variables are provided by the host environment (ipc-mcp-stdio.ts)
+// when this code is integrated into the NanoClaw container agent.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+declare const server: { tool: (...args: any[]) => void };
+declare function writeIpcFile(dir: string, data: any): void;
+declare const TASKS_DIR: string;
+declare const groupFolder: string;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Result waiting helper
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function waitForResult(requestId: string, timeoutMs: number = 60000): Promise<any> {
   const resultDir = '/workspace/ipc/clawsec_results';
   const resultPath = path.join(resultDir, `${requestId}.json`);
@@ -216,45 +220,30 @@ server.tool(
 // Usage Examples (for documentation)
 // ============================================================================
 
-/*
-
-## Example 1: Scheduled Integrity Check
-
-schedule_task({
-  prompt: `
-    Check file integrity with clawsec_check_integrity.
-    If drift detected and files were restored, alert user:
-    "⚠️ SECURITY ALERT: Unauthorized changes detected and reverted:
-    [list files with details]
-    Review /workspace/project/data/soul-guardian/patches/ for details."
-  `,
-  schedule_type: 'cron',
-  schedule_value: '*/30 * * * *',  // Every 30 minutes
-  context_mode: 'isolated'
-});
-
-## Example 2: Pre-Deployment Check
-
-const check = await tools.clawsec_check_integrity({ mode: 'check', autoRestore: false });
-if (check.drift_detected) {
-  console.log('⚠️ WARNING: Files have been modified. Review changes before deploying.');
-  console.log('Drifted files:', check.files.filter(f => f.status === 'drifted'));
-}
-
-## Example 3: Approve Legitimate Changes
-
-// After updating CLAUDE.md
-await tools.clawsec_approve_change({
-  path: '/workspace/group/CLAUDE.md',
-  note: 'Updated agent instructions to include new skill'
-});
-
-## Example 4: Audit Verification
-
-const audit = await tools.clawsec_verify_audit();
-if (!audit.valid) {
-  console.log('🚨 CRITICAL: Audit log has been tampered with!');
-  console.log('Errors:', audit.errors);
-}
-
-*/
+// Usage Examples (for documentation):
+//
+// Example 1: Scheduled Integrity Check
+//
+// schedule_task({
+//   prompt: 'Check file integrity with clawsec_check_integrity...',
+//   schedule_type: 'cron',
+//   schedule_value: '0,30 * * * *',  // Every 30 minutes
+//   context_mode: 'isolated'
+// });
+//
+// Example 2: Pre-Deployment Check
+//
+// const check = await tools.clawsec_check_integrity({ mode: 'check', autoRestore: false });
+// if (check.drift_detected) { ... }
+//
+// Example 3: Approve Legitimate Changes
+//
+// await tools.clawsec_approve_change({
+//   path: '/workspace/group/CLAUDE.md',
+//   note: 'Updated agent instructions to include new skill'
+// });
+//
+// Example 4: Audit Verification
+//
+// const audit = await tools.clawsec_verify_audit();
+// if (!audit.valid) { ... }
