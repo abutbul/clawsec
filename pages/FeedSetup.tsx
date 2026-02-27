@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Rss, RefreshCw, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Download, Users, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Footer } from '../components/Footer';
@@ -12,12 +12,48 @@ import {
 
 const ITEMS_PER_PAGE = 9;
 
+const SEVERITY_TABS = [
+  { value: 'all',      label: 'All',      active: 'bg-clawd-accent text-white',                                    inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-clawd-accent/50' },
+  { value: 'critical', label: 'Critical', active: 'bg-red-500/20 text-red-400 border-2 border-red-400',            inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-red-400/50' },
+  { value: 'high',     label: 'High',     active: 'bg-orange-500/20 text-orange-400 border-2 border-orange-400',   inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-orange-400/50' },
+  { value: 'medium',   label: 'Medium',   active: 'bg-yellow-500/20 text-yellow-400 border-2 border-yellow-400',   inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-yellow-400/50' },
+  { value: 'low',      label: 'Low',      active: 'bg-blue-500/20 text-blue-400 border-2 border-blue-400',         inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-blue-400/50' },
+] as const;
+
+const PLATFORM_TABS = [
+  { value: 'all',      label: 'All Platforms', active: 'bg-clawd-accent text-white',                                         inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-clawd-accent/50' },
+  { value: 'openclaw', label: 'OpenClaw',      active: 'bg-clawd-accent/20 text-clawd-accent border-2 border-clawd-accent',  inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-clawd-accent/50' },
+  { value: 'nanoclaw', label: 'NanoClaw',      active: 'bg-clawd-secondary/20 text-clawd-secondary border-2 border-clawd-secondary', inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-clawd-secondary/50' },
+] as const;
+
+const FilterTabs: React.FC<{
+  tabs: ReadonlyArray<{ value: string; label: string; active: string; inactive: string }>;
+  selected: string;
+  onSelect: (value: string) => void;
+}> = ({ tabs, selected, onSelect }) => (
+  <div className="flex flex-wrap justify-center gap-3 mb-8">
+    {tabs.map(({ value, label, active, inactive }) => (
+      <button
+        key={value}
+        onClick={() => onSelect(value)}
+        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+          selected === value ? active : inactive
+        }`}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+);
+
 export const FeedSetup: React.FC = () => {
   const [advisories, setAdvisories] = useState<Advisory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
 
   useEffect(() => {
     const fetchAdvisories = async () => {
@@ -55,6 +91,18 @@ export const FeedSetup: React.FC = () => {
     fetchAdvisories();
   }, []);
 
+  const filteredAdvisories = useMemo(
+    () => advisories.filter((a) =>
+      (selectedSeverity === 'all' || a.severity === selectedSeverity) &&
+      (selectedPlatform === 'all' || !a.platforms?.length || a.platforms.includes(selectedPlatform))
+    ),
+    [advisories, selectedSeverity, selectedPlatform],
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [advisories, selectedSeverity, selectedPlatform]);
+
   const formatDate = (dateStr: string) => {
     try {
       return new Date(dateStr).toLocaleDateString('en-US', {
@@ -68,10 +116,10 @@ export const FeedSetup: React.FC = () => {
   };
 
   // Pagination calculations
-  const totalPages = Math.ceil(advisories.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredAdvisories.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentAdvisories = advisories.slice(startIndex, endIndex);
+  const currentAdvisories = filteredAdvisories.slice(startIndex, endIndex);
 
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
@@ -94,6 +142,9 @@ export const FeedSetup: React.FC = () => {
       </section>
 
       <section>
+        <FilterTabs tabs={SEVERITY_TABS} selected={selectedSeverity} onSelect={setSelectedSeverity} />
+        <FilterTabs tabs={PLATFORM_TABS} selected={selectedPlatform} onSelect={setSelectedPlatform} />
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-clawd-accent animate-spin" />
@@ -104,9 +155,13 @@ export const FeedSetup: React.FC = () => {
             <AlertTriangle className="w-6 h-6 text-orange-400 mr-2" />
             <span className="text-gray-400">{error}</span>
           </div>
-        ) : advisories.length === 0 ? (
+        ) : filteredAdvisories.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-400">No security advisories at this time. Check back later.</p>
+            <p className="text-gray-400">
+              {advisories.length === 0
+                ? 'No security advisories at this time. Check back later.'
+                : 'No advisories found for the selected filters.'}
+            </p>
           </div>
         ) : (
           <>
@@ -141,9 +196,10 @@ export const FeedSetup: React.FC = () => {
               </div>
             )}
 
-            {advisories.length > 0 && (
+            {filteredAdvisories.length > 0 && (
               <p className="text-center text-sm text-gray-500 mt-4">
-                Showing {startIndex + 1}-{Math.min(endIndex, advisories.length)} of {advisories.length} advisories
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredAdvisories.length)} of {filteredAdvisories.length} advisories
+                {(selectedSeverity !== 'all' || selectedPlatform !== 'all') && ` (${advisories.length} total)`}
               </p>
             )}
           </>
