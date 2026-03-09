@@ -1,6 +1,6 @@
 ---
 name: clawsec-nanoclaw
-version: 0.0.2
+version: 0.0.3
 description: Use when checking for security vulnerabilities in NanoClaw skills, before installing new skills, or when asked about security advisories affecting the bot
 ---
 
@@ -186,6 +186,7 @@ if (advisory.exploitability_score === 'high' || advisory.severity === 'critical'
 **Update Frequency**: Every 6 hours (automatic)
 
 **Signature Verification**: Ed25519 signed feeds
+**Package Verification Policy**: pinned key only, bounded package/signature paths
 
 **Cache Location**: `/workspace/project/data/clawsec-advisory-cache.json`
 
