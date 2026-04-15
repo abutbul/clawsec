@@ -76,6 +76,53 @@ await withTempDir(async (tempDir) => {
   ]);
   assert.equal(verifyTrustedBaseline.status, 0, `trusted baseline should verify: ${verifyTrustedBaseline.stderr}`);
 
+  const invalidCurrent = JSON.parse(attestationRaw);
+  delete invalidCurrent.platform;
+  await fs.writeFile(outputPath, JSON.stringify(invalidCurrent, null, 2), "utf8");
+
+  const verifyInvalidCurrent = runNode(verifierScript, ["--input", outputPath]);
+  assert.notEqual(verifyInvalidCurrent.status, 0, "schema-invalid current attestation must be rejected");
+  assert.ok(verifyInvalidCurrent.stdout.includes("SCHEMA_INVALID"), verifyInvalidCurrent.stdout);
+
+  await fs.writeFile(outputPath, attestationRaw, "utf8");
+
+  const baselineCanonicalMismatch = JSON.parse(attestationRaw);
+  baselineCanonicalMismatch.posture.runtime.risky_toggles.allow_unsigned_mode = true;
+  const baselineCanonicalMismatchRaw = JSON.stringify(baselineCanonicalMismatch, null, 2);
+  await fs.writeFile(baselinePath, baselineCanonicalMismatchRaw, "utf8");
+  const baselineCanonicalMismatchDigest = crypto.createHash("sha256").update(baselineCanonicalMismatchRaw).digest("hex");
+
+  const verifyBaselineCanonicalMismatch = runNode(verifierScript, [
+    "--input",
+    outputPath,
+    "--baseline",
+    baselinePath,
+    "--baseline-expected-sha256",
+    baselineCanonicalMismatchDigest,
+  ]);
+  assert.notEqual(verifyBaselineCanonicalMismatch.status, 0, "baseline canonical digest mismatch must be rejected");
+  assert.ok(
+    verifyBaselineCanonicalMismatch.stdout.includes("BASELINE_CANONICAL_DIGEST_MISMATCH"),
+    verifyBaselineCanonicalMismatch.stdout,
+  );
+
+  const baselineSchemaInvalid = JSON.parse(attestationRaw);
+  delete baselineSchemaInvalid.platform;
+  const baselineSchemaInvalidRaw = JSON.stringify(baselineSchemaInvalid, null, 2);
+  await fs.writeFile(baselinePath, baselineSchemaInvalidRaw, "utf8");
+  const baselineSchemaInvalidDigest = crypto.createHash("sha256").update(baselineSchemaInvalidRaw).digest("hex");
+
+  const verifyBaselineSchemaInvalid = runNode(verifierScript, [
+    "--input",
+    outputPath,
+    "--baseline",
+    baselinePath,
+    "--baseline-expected-sha256",
+    baselineSchemaInvalidDigest,
+  ]);
+  assert.notEqual(verifyBaselineSchemaInvalid.status, 0, "schema-invalid baseline must be rejected");
+  assert.ok(verifyBaselineSchemaInvalid.stdout.includes("BASELINE_SCHEMA_INVALID"), verifyBaselineSchemaInvalid.stdout);
+
   const baselineTampered = JSON.parse(attestationRaw);
   baselineTampered.posture.runtime.risky_toggles.allow_unsigned_mode = true;
   await fs.writeFile(baselinePath, JSON.stringify(baselineTampered, null, 2), "utf8");

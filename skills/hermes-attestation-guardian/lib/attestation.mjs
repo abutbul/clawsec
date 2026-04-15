@@ -172,7 +172,21 @@ function bool(value, defaultValue = false) {
   if (value === undefined || value === null) {
     return defaultValue;
   }
-  return !!value;
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+    return defaultValue;
+  }
+  if (typeof value === "string") {
+    const norm = value.trim().toLowerCase();
+    if (["1", "true", "yes", "on", "enabled"].includes(norm)) return true;
+    if (["0", "false", "no", "off", "disabled"].includes(norm)) return false;
+    return defaultValue;
+  }
+  return defaultValue;
 }
 
 function readEnvBool(name, fallback = false) {
@@ -341,6 +355,10 @@ export function validateAttestationSchema(attestation) {
 
   if (!isPlainObject(attestation.generator)) {
     errors.push("generator object is required");
+  } else {
+    if (typeof attestation.generator.version !== "string" || !attestation.generator.version.trim()) {
+      errors.push("generator.version must be a non-empty string");
+    }
   }
   if (!isPlainObject(attestation.host)) {
     errors.push("host object is required");
@@ -349,8 +367,29 @@ export function validateAttestationSchema(attestation) {
   if (!isPlainObject(attestation.posture)) {
     errors.push("posture object is required");
   } else {
-    if (!isPlainObject(attestation.posture.runtime)) {
+    const runtime = attestation.posture.runtime;
+    if (!isPlainObject(runtime)) {
       errors.push("posture.runtime object is required");
+    } else {
+      if (!isPlainObject(runtime.gateways)) {
+        errors.push("posture.runtime.gateways object is required");
+      } else {
+        for (const gateway of ["telegram", "matrix", "discord"]) {
+          if (typeof runtime.gateways[gateway] !== "boolean") {
+            errors.push(`posture.runtime.gateways.${gateway} must be a boolean`);
+          }
+        }
+      }
+
+      if (!isPlainObject(runtime.risky_toggles)) {
+        errors.push("posture.runtime.risky_toggles object is required");
+      } else {
+        for (const toggle of ["allow_unsigned_mode", "bypass_verification"]) {
+          if (typeof runtime.risky_toggles[toggle] !== "boolean") {
+            errors.push(`posture.runtime.risky_toggles.${toggle} must be a boolean`);
+          }
+        }
+      }
     }
     if (!isPlainObject(attestation.posture.feed_verification)) {
       errors.push("posture.feed_verification object is required");
@@ -365,12 +404,35 @@ export function validateAttestationSchema(attestation) {
     if (!isPlainObject(integrity)) {
       errors.push("posture.integrity object is required");
     } else {
-      if (!Array.isArray(integrity.watched_files)) {
-        errors.push("posture.integrity.watched_files must be an array");
-      }
-      if (!Array.isArray(integrity.trust_anchors)) {
-        errors.push("posture.integrity.trust_anchors must be an array");
-      }
+      const validateIntegrityEntries = (entries, fieldPath) => {
+        if (!Array.isArray(entries)) {
+          errors.push(`${fieldPath} must be an array`);
+          return;
+        }
+
+        entries.forEach((entry, index) => {
+          const itemPath = `${fieldPath}[${index}]`;
+          if (!isPlainObject(entry)) {
+            errors.push(`${itemPath} must be an object`);
+            return;
+          }
+
+          if (typeof entry.path !== "string" || !entry.path.trim()) {
+            errors.push(`${itemPath}.path must be a non-empty string`);
+          }
+
+          if (typeof entry.exists !== "boolean") {
+            errors.push(`${itemPath}.exists must be a boolean`);
+          }
+
+          if (entry.sha256 !== null && !/^[a-f0-9]{64}$/i.test(String(entry.sha256 || ""))) {
+            errors.push(`${itemPath}.sha256 must be null or a 64-char sha256 hex string`);
+          }
+        });
+      };
+
+      validateIntegrityEntries(integrity.watched_files, "posture.integrity.watched_files");
+      validateIntegrityEntries(integrity.trust_anchors, "posture.integrity.trust_anchors");
     }
   }
 

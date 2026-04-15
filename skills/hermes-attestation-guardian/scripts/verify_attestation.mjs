@@ -136,6 +136,20 @@ function printFinding(finding) {
   process.stdout.write(`${sev}: ${finding.code} - ${finding.message}\n`);
 }
 
+function validateSchemaAndDigestBinding({ attestation, schemaInvalidCode, canonicalDigestMismatchCode, verificationFindings, failures }) {
+  const schemaErrors = validateAttestationSchema(attestation);
+  for (const message of schemaErrors) {
+    verificationFindings.push({ severity: "critical", code: schemaInvalidCode, message });
+    failures.push(message);
+  }
+
+  const digestBindingError = validateDigestBinding(attestation);
+  if (digestBindingError) {
+    verificationFindings.push({ severity: "critical", code: canonicalDigestMismatchCode, message: digestBindingError });
+    failures.push(digestBindingError);
+  }
+}
+
 function run() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -167,17 +181,13 @@ function run() {
     throw new Error(`invalid JSON attestation: ${error.message}`);
   }
 
-  const schemaErrors = validateAttestationSchema(attestation);
-  for (const message of schemaErrors) {
-    verificationFindings.push({ severity: "critical", code: "SCHEMA_INVALID", message });
-    failures.push(message);
-  }
-
-  const digestBindingError = validateDigestBinding(attestation);
-  if (digestBindingError) {
-    verificationFindings.push({ severity: "critical", code: "CANONICAL_DIGEST_MISMATCH", message: digestBindingError });
-    failures.push(digestBindingError);
-  }
+  validateSchemaAndDigestBinding({
+    attestation,
+    schemaInvalidCode: "SCHEMA_INVALID",
+    canonicalDigestMismatchCode: "CANONICAL_DIGEST_MISMATCH",
+    verificationFindings,
+    failures,
+  });
 
   const fileDigest = sha256Hex(inputBytes);
   if (args.expectedSha256) {
@@ -262,20 +272,13 @@ function run() {
 
       try {
         const baseline = JSON.parse(baselineBytes.toString("utf8"));
-        const baselineSchemaErrors = validateAttestationSchema(baseline);
-        for (const message of baselineSchemaErrors) {
-          verificationFindings.push({ severity: "critical", code: "BASELINE_SCHEMA_INVALID", message });
-          failures.push(message);
-        }
-        const baselineDigestBindingError = validateDigestBinding(baseline);
-        if (baselineDigestBindingError) {
-          verificationFindings.push({
-            severity: "critical",
-            code: "BASELINE_CANONICAL_DIGEST_MISMATCH",
-            message: baselineDigestBindingError,
-          });
-          failures.push(baselineDigestBindingError);
-        }
+        validateSchemaAndDigestBinding({
+          attestation: baseline,
+          schemaInvalidCode: "BASELINE_SCHEMA_INVALID",
+          canonicalDigestMismatchCode: "BASELINE_CANONICAL_DIGEST_MISMATCH",
+          verificationFindings,
+          failures,
+        });
 
         if (failures.length === 0) {
           diff = diffAttestations(baseline, attestation);
