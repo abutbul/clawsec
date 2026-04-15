@@ -1,0 +1,124 @@
+#!/usr/bin/env node
+import assert from "node:assert/strict";
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const skillRoot = path.resolve(__dirname, "..");
+const generatorScript = path.join(skillRoot, "scripts", "generate_attestation.mjs");
+const verifierScript = path.join(skillRoot, "scripts", "verify_attestation.mjs");
+
+function runNode(scriptPath, args = [], extraEnv = {}) {
+  return spawnSync(process.execPath, [scriptPath, ...args], {
+    cwd: skillRoot,
+    encoding: "utf8",
+    env: { ...process.env, ...extraEnv },
+  });
+}
+
+async function withTempDir(run) {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "hag-cli-"));
+  try {
+    await run(dir);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
+
+await withTempDir(async (tempDir) => {
+  const hermesHome = path.join(tempDir, ".hermes");
+  const attestationsDir = path.join(hermesHome, "security", "attestations");
+  const outputPath = path.join(attestationsDir, "current.json");
+  const baselinePath = path.join(attestationsDir, "baseline.json");
+  const watchedPath = path.join(tempDir, "config.json");
+
+  await fs.mkdir(attestationsDir, { recursive: true });
+  await fs.writeFile(watchedPath, JSON.stringify({ secure: true }), "utf8");
+
+  const generatedAt = "2026-04-15T18:01:00.000Z";
+  const generate = runNode(
+    generatorScript,
+    ["--output", outputPath, "--watch", watchedPath, "--generated-at", generatedAt, "--write-sha256"],
+    { HERMES_HOME: hermesHome },
+  );
+
+  assert.equal(generate.status, 0, `generate failed: ${generate.stderr}`);
+  const attestationRaw = await fs.readFile(outputPath, "utf8");
+  const attestation = JSON.parse(attestationRaw);
+  assert.equal(attestation.platform, "hermes");
+  assert.equal(attestation.generated_at, generatedAt);
+
+  const verify = runNode(verifierScript, ["--input", outputPath]);
+  assert.equal(verify.status, 0, `verify should pass: ${verify.stderr}`);
+
+  const outOfScope = runNode(generatorScript, ["--output", path.join(tempDir, "outside.json")], { HERMES_HOME: hermesHome });
+  assert.notEqual(outOfScope.status, 0, "generator must reject out-of-scope --output");
+  assert.ok(outOfScope.stderr.includes("output path must stay under"), outOfScope.stderr);
+
+  await fs.writeFile(baselinePath, attestationRaw, "utf8");
+  const baselineDigest = crypto.createHash("sha256").update(attestationRaw).digest("hex");
+
+  const verifyUntrustedBaseline = runNode(verifierScript, ["--input", outputPath, "--baseline", baselinePath]);
+  assert.notEqual(verifyUntrustedBaseline.status, 0, "baseline diff must fail when baseline is unauthenticated");
+  assert.ok(verifyUntrustedBaseline.stdout.includes("BASELINE_UNTRUSTED"), verifyUntrustedBaseline.stdout);
+
+  const verifyTrustedBaseline = runNode(verifierScript, [
+    "--input",
+    outputPath,
+    "--baseline",
+    baselinePath,
+    "--baseline-expected-sha256",
+    baselineDigest,
+  ]);
+  assert.equal(verifyTrustedBaseline.status, 0, `trusted baseline should verify: ${verifyTrustedBaseline.stderr}`);
+
+  const baselineTampered = JSON.parse(attestationRaw);
+  baselineTampered.posture.runtime.risky_toggles.allow_unsigned_mode = true;
+  await fs.writeFile(baselinePath, JSON.stringify(baselineTampered, null, 2), "utf8");
+
+  const verifyTamperedBaseline = runNode(verifierScript, [
+    "--input",
+    outputPath,
+    "--baseline",
+    baselinePath,
+    "--baseline-expected-sha256",
+    baselineDigest,
+  ]);
+  assert.notEqual(verifyTamperedBaseline.status, 0, "tampered baseline must be rejected");
+  assert.ok(verifyTamperedBaseline.stdout.includes("BASELINE_DIGEST_MISMATCH"), verifyTamperedBaseline.stdout);
+
+  const tampered = JSON.parse(attestationRaw);
+  tampered.posture.runtime.risky_toggles.allow_unsigned_mode = true;
+  await fs.writeFile(outputPath, JSON.stringify(tampered, null, 2), "utf8");
+
+  const verifyTampered = runNode(verifierScript, ["--input", outputPath]);
+  assert.notEqual(verifyTampered.status, 0, "verify must fail closed after tampering");
+  assert.ok(
+    verifyTampered.stderr.includes("CRITICAL") || verifyTampered.stdout.includes("CANONICAL_DIGEST_MISMATCH"),
+    `expected critical verification signal, got stdout=${verifyTampered.stdout} stderr=${verifyTampered.stderr}`,
+  );
+});
+
+await withTempDir(async (tempDir) => {
+  const hermesHome = path.join(tempDir, ".hermes");
+  const securityDir = path.join(hermesHome, "security");
+  const attestationsDir = path.join(securityDir, "attestations");
+  const escapedDir = path.join(tempDir, "escaped-attestations");
+  const outputPath = path.join(attestationsDir, "current.json");
+
+  await fs.mkdir(securityDir, { recursive: true });
+  await fs.mkdir(escapedDir, { recursive: true });
+  await fs.symlink(escapedDir, attestationsDir, "dir");
+
+  const symlinkEscape = runNode(generatorScript, ["--output", outputPath], {
+    HERMES_HOME: hermesHome,
+  });
+  assert.notEqual(symlinkEscape.status, 0, "generator must reject symlink-based output path escapes");
+  assert.ok(symlinkEscape.stderr.includes("output path must stay under"), symlinkEscape.stderr);
+});
+
+console.log("attestation_cli.test.mjs: ok");
