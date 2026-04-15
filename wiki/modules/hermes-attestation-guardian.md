@@ -2,38 +2,262 @@
 
 ## Responsibilities
 - Produce a deterministic Hermes runtime security snapshot (attestation).
-- Verify attestation integrity in fail-closed mode before trust decisions.
+- Verify attestation integrity in fail-closed mode before any trust decision.
 - Compare trusted baseline vs current posture and classify drift severity.
 - Provide a safe, Hermes-scoped automation path for periodic attestation checks.
 
-## Claims from PR description (human-friendly)
+## PR Claims: Full Human-Friendly Breakdown
 
-| Claim | In people-speak | Where it is wired (code/config) | How we verify it |
-| --- | --- | --- | --- |
-| Adds deterministic attestation generation with canonicalized payload digesting. | If nothing changed in Hermes, the attestation fingerprint should stay the same. No noisy diffs from JSON ordering. | `skills/hermes-attestation-guardian/scripts/generate_attestation.mjs`, `skills/hermes-attestation-guardian/lib/attestation.mjs` (`stableStringify`, canonical digest helpers), `skills/hermes-attestation-guardian/skill.json` | `node skills/hermes-attestation-guardian/test/attestation_schema.test.mjs` checks deterministic output and digest/schema expectations. |
-| Enforces fail-closed verification for schema, digest, optional expected checksum, and detached signatures. | Verification must stop with an error when integrity checks fail; never “best effort pass.” | `skills/hermes-attestation-guardian/scripts/verify_attestation.mjs`, `skills/hermes-attestation-guardian/lib/attestation.mjs`, operator notes in `skills/hermes-attestation-guardian/skill.json` and `SKILL.md` | `node skills/hermes-attestation-guardian/test/attestation_cli.test.mjs` covers tamper/error paths and non-zero exits. |
-| Adds baseline authenticity and drift-severity classification for risky toggles, feed verification regressions, trust anchor drift, and watched file drift. | Baseline diff is trusted only when baseline authenticity is proven, then drift is ranked by severity so operators can act fast. | Baseline trust gates in `scripts/verify_attestation.mjs`; drift engine in `lib/diff.mjs`; docs in `README.md`/`SKILL.md` | `node skills/hermes-attestation-guardian/test/attestation_cli.test.mjs` (baseline trust/tamper) and `node skills/hermes-attestation-guardian/test/attestation_diff.test.mjs` (severity mapping). |
-| Adds Hermes-only cron setup helper with managed marker block and print-only default. | Cron setup is opt-in and safe by default: it prints planned changes unless `--apply` is explicit. | `skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs`, `skills/hermes-attestation-guardian/SKILL.md` | `node skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs` validates print-only behavior and managed-block logic. |
-| Includes output-scope/path guardrails for attestation artifacts and policy parsing safeguards. | Output writes are constrained to Hermes attestation scope, including symlink-aware escape defense. | `skills/hermes-attestation-guardian/lib/attestation.mjs` (`resolveHermesScopedOutputPath`), `scripts/generate_attestation.mjs`, `scripts/setup_attestation_cron.mjs` | `node skills/hermes-attestation-guardian/test/attestation_cli.test.mjs` includes out-of-scope and symlink-escape rejection checks. |
-| Cron managed-block parser fails closed on malformed markers. | If cron markers are broken, updater refuses to rewrite instead of risking accidental deletion. | `skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs` (`removeManagedBlock`) | `node skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs` covers dangling start, unmatched end, and nested marker failures. |
+This section rewrites each PR claim as an operator-facing explanation, then ties it to exact code and tests.
+
+### Claim 1: Adds deterministic attestation generation with canonicalized payload digesting.
+
+Absolutely — in people-speak:
+
+We create a security snapshot of Hermes in a way that is reproducible, then fingerprint it in a stable way so tampering or real drift is obvious.
+
+What this means in practice:
+1) Attestation generation
+- Think of it as a report card for Hermes security posture at a moment in time.
+- It records posture fields, trust anchors, watched-file hashes, and metadata.
+
+2) Deterministic output
+- Same state should produce the same attestation content.
+- No noise from object insertion order or formatting randomness.
+
+3) Canonicalization before hashing
+- Payload is normalized into one canonical JSON representation.
+- This removes ambiguity from normal JSON variations.
+
+4) Digest binding
+- SHA-256 is computed over canonical payload content.
+- Any meaningful change to payload changes digest.
+- Any post-generation tampering causes verification mismatch.
+
+Where it is wired:
+- `skills/hermes-attestation-guardian/scripts/generate_attestation.mjs`
+- `skills/hermes-attestation-guardian/lib/attestation.mjs`
+  - `stableSortObject`
+  - `stableStringify`
+  - `sha256Hex`
+  - `buildAttestation`
+  - `computeCanonicalDigest`
+  - `validateDigestBinding`
+
+How to verify:
+- `node skills/hermes-attestation-guardian/test/attestation_schema.test.mjs`
+  - proves same-input determinism and canonical digest consistency.
+- `node skills/hermes-attestation-guardian/test/attestation_cli.test.mjs`
+  - proves post-generation tamper causes fail-closed digest mismatch.
+
+Quick scenario:
+- Same state: run generator twice with unchanged inputs -> same digest.
+- Tampered file: flip a posture value in JSON -> verifier fails on canonical digest mismatch.
+
+---
+
+### Claim 2: Enforces fail-closed verification for schema, digest, optional expected checksum, and detached signatures.
+
+In people-speak:
+
+Verification is not “best effort.” If a trust check fails, verification fails. No soft pass.
+
+What is fail-closed here:
+1) Schema must be valid.
+2) Canonical digest must match payload.
+3) If `--expected-sha256` is supplied, file bytes must exactly match.
+4) If detached signature verification is requested, signature + public key must both be present and valid.
+
+Where it is wired:
+- `skills/hermes-attestation-guardian/scripts/verify_attestation.mjs`
+  - schema checks
+  - digest checks
+  - expected checksum check
+  - detached signature verification
+  - non-zero exit on critical failure
+- `skills/hermes-attestation-guardian/lib/attestation.mjs`
+  - `validateAttestationSchema`
+  - `validateDigestBinding`
+
+How to verify:
+- `node skills/hermes-attestation-guardian/test/attestation_schema.test.mjs`
+  - proves schema rejection and digest algorithm validation behavior.
+- `node skills/hermes-attestation-guardian/test/attestation_cli.test.mjs`
+  - proves tamper path exits non-zero (fail closed).
+
+Quick scenario:
+- CI pins expected SHA and requires detached signature.
+- Artifact is modified or signed incorrectly -> verification exits non-zero and blocks pipeline.
+
+---
+
+### Claim 3: Adds baseline authenticity and drift-severity classification for risky toggles, feed verification regressions, trust anchor drift, and watched file drift.
+
+In people-speak:
+
+You only compare against a baseline after proving the baseline itself is authentic. Then differences are ranked by severity so operators can respond quickly.
+
+What this gives operators:
+1) Authenticated baseline gate
+- Baseline must be trusted (pinned digest and/or detached signature trust path).
+- Untrusted baseline is rejected before diffing.
+
+2) Severity-ranked drift findings
+- Critical/high/medium/low/info mapping instead of flat alerts.
+- High-signal categories include:
+  - risky toggle enablement,
+  - feed verification regressions,
+  - trust anchor hash drift,
+  - watched file hash drift.
+
+3) Policy-driven failure threshold
+- Verification can fail when findings meet/exceed configured severity threshold.
+
+Where it is wired:
+- Baseline trust and diff orchestration:
+  - `skills/hermes-attestation-guardian/scripts/verify_attestation.mjs`
+- Drift engine and severity mapping:
+  - `skills/hermes-attestation-guardian/lib/diff.mjs`
+  - `diffAttestations`
+  - `highestSeverity`
+  - `severityAtOrAbove`
+
+How to verify:
+- `node skills/hermes-attestation-guardian/test/attestation_cli.test.mjs`
+  - proves untrusted baseline rejection and digest-pinned baseline handling.
+- `node skills/hermes-attestation-guardian/test/attestation_diff.test.mjs`
+  - proves classification for key drift types and highest-severity behavior.
+
+Quick scenario:
+- Yesterday’s baseline is pinned and trusted.
+- Today `allow_unsigned_mode` flips on and trust anchor hash changes.
+- Diff emits critical findings and verifier can fail run by severity policy.
+
+---
+
+### Claim 4: Adds Hermes-only cron setup helper with managed marker block and print-only default.
+
+In people-speak:
+
+You get a scheduler helper that is safe by default: it shows planned cron changes first, and only writes when you explicitly ask.
+
+What “safe by default” means:
+1) Hermes-only framing in UX and docs.
+2) Managed marker block for clean replacement of only this module’s cron section.
+3) Print-only default; write path requires explicit `--apply`.
+
+Where it is wired:
+- `skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs`
+  - managed markers
+  - print-only defaults
+  - apply path
+- Supporting scope/docs:
+  - `skills/hermes-attestation-guardian/SKILL.md`
+  - `skills/hermes-attestation-guardian/skill.json`
+
+How to verify:
+- `node skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs`
+  - proves Hermes-only messaging and managed-block behavior.
+  - proves default mode is preview-oriented and apply path is explicit.
+
+Quick scenario:
+- Operator runs cron helper without flags -> sees proposed block only.
+- Operator reviews, then reruns with `--apply` -> only managed block is updated.
+
+---
+
+### Claim 5: Includes output-scope/path guardrails for attestation artifacts and policy parsing safeguards.
+
+In people-speak:
+
+Artifact writes are fenced into Hermes attestation scope, including symlink-escape defenses, and policy parsing is normalized/defensive so bad input fails cleanly.
+
+What this protects against:
+1) Out-of-scope writes
+- Output path must remain under `HERMES_HOME/security/attestations`.
+
+2) Symlink escapes
+- Path resolution checks nearest existing ancestors and symlink behavior to prevent “write outside root” tricks.
+
+3) Safer policy parsing
+- Missing/invalid structure gets normalized defaults where appropriate.
+- Malformed JSON fails closed.
+- List fields are trimmed, deduplicated, and sorted.
+
+Where it is wired:
+- Guardrails:
+  - `skills/hermes-attestation-guardian/lib/attestation.mjs`
+    - `resolveHermesScopedOutputPath`
+- Call sites:
+  - `skills/hermes-attestation-guardian/scripts/generate_attestation.mjs`
+  - `skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs`
+- Policy parsing:
+  - `skills/hermes-attestation-guardian/lib/attestation.mjs`
+    - `parseAttestationPolicy`
+
+How to verify:
+- `node skills/hermes-attestation-guardian/test/attestation_cli.test.mjs`
+  - proves out-of-scope and symlink-escape output rejection.
+- `node skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs`
+  - proves cron helper also rejects out-of-scope output target.
+
+Quick scenario:
+- Operator accidentally sets `--output /tmp/current.json`.
+- Tool exits with critical path-scope error instead of writing outside Hermes scope.
+
+---
+
+### Claim 6: Cron managed-block parser fails closed on malformed markers.
+
+In people-speak:
+
+If cron markers are malformed (dangling start/end or nested blocks), updater refuses to rewrite crontab to avoid accidental deletion or corruption.
+
+What this means operationally:
+1) Marker structure is treated as integrity-sensitive input.
+2) Malformed structure throws and aborts apply path.
+3) No crontab write occurs after malformed marker detection.
+
+Where it is wired:
+- `skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs`
+  - `removeManagedBlock`
+  - marker parsing and malformed-marker throw paths
+
+How to verify:
+- `node skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs`
+  - proves fail-closed behavior for:
+    - dangling start marker,
+    - unmatched end marker,
+    - nested markers,
+  - and verifies no write on malformed input.
+
+Quick scenario:
+- Existing crontab has managed start marker with no end marker.
+- Running `--apply` aborts with malformed-marker error and leaves crontab unchanged.
 
 ## Key Files
 - `skills/hermes-attestation-guardian/skill.json`: metadata, platform scope, operator review notes, SBOM.
 - `skills/hermes-attestation-guardian/SKILL.md`: operator playbook, CLI usage, fail-closed policy.
 - `skills/hermes-attestation-guardian/README.md`: quickstart and practical behavior notes.
-- `skills/hermes-attestation-guardian/lib/attestation.mjs`: canonicalization, digest binding, schema checks, scoped output resolution.
+- `skills/hermes-attestation-guardian/lib/attestation.mjs`: canonicalization, digest binding, schema checks, scoped output resolution, policy parsing.
 - `skills/hermes-attestation-guardian/lib/diff.mjs`: baseline drift comparison and severity classification.
 - `skills/hermes-attestation-guardian/scripts/generate_attestation.mjs`: deterministic attestation generation CLI.
 - `skills/hermes-attestation-guardian/scripts/verify_attestation.mjs`: fail-closed verifier and baseline trust enforcement.
 - `skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs`: cron managed-block helper.
 
 ## Public Interfaces
-| Interface | Consumer | Behavior |
-| --- | --- | --- |
-| `generate_attestation.mjs` CLI | Operators/automation | Creates canonicalized attestation JSON and optional checksum artifact. |
-| `verify_attestation.mjs` CLI | Operators/automation/cron | Enforces schema/digest/signature checks and optional trusted baseline drift checks. |
-| `setup_attestation_cron.mjs` CLI | Operators | Prints or applies managed cron block for scheduled generate+verify runs. |
-| Diff output contract | Operators/CI | Emits severity-ranked drift findings for security triage. |
+- `generate_attestation.mjs` CLI
+  - Consumer: operators/automation
+  - Behavior: creates canonicalized attestation JSON and optional checksum artifact.
+- `verify_attestation.mjs` CLI
+  - Consumer: operators/automation/cron
+  - Behavior: enforces schema/digest/signature checks and optional trusted-baseline drift checks.
+- `setup_attestation_cron.mjs` CLI
+  - Consumer: operators
+  - Behavior: prints or applies managed cron block for scheduled generate+verify runs.
+- Diff output contract
+  - Consumer: operators/CI
+  - Behavior: emits severity-ranked drift findings for security triage.
 
 ## Validation Commands
 ```bash
@@ -45,7 +269,7 @@ node skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs
 ```
 
 ## Update Notes
-- 2026-04-15: Added module page for `hermes-attestation-guardian` and documented PR-claim-to-code/test traceability in human-friendly terms.
+- 2026-04-15: Replaced table-style PR claim mapping with full narrative claim breakdowns (people-speak, wiring, verification, and concrete scenarios per claim).
 
 ## Source References
 - skills/hermes-attestation-guardian/skill.json
@@ -61,4 +285,3 @@ node skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs
 - skills/hermes-attestation-guardian/test/attestation_diff.test.mjs
 - skills/hermes-attestation-guardian/test/attestation_cli.test.mjs
 - skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs
-- docs/plans/2026-04-15-hermes-attestation-guardian-draft.md
