@@ -15,6 +15,7 @@
 - Updated index and cross-links to use `wiki/` as the documentation source of truth.
 - Added a dedicated module page for `clawsec-scanner` and linked it from `wiki/INDEX.md`.
 - Future updates should preserve existing headings and append `Update Notes` sections when making deltas.
+- 2026-04-15: Added `wiki/modules/hermes-attestation-guardian.md` documenting PR claims in human-friendly claim→wiring format.
 
 ## Source References
 - README.md

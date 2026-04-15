@@ -30,6 +30,7 @@
 - [Frontend Web App](modules/frontend-web.md)
 - [ClawSec Suite Core](modules/clawsec-suite.md)
 - [ClawSec Scanner](modules/clawsec-scanner.md)
+- [Hermes Attestation Guardian](modules/hermes-attestation-guardian.md)
 - [NanoClaw Integration](modules/nanoclaw-integration.md)
 - [Automation and Release Pipelines](modules/automation-release.md)
 - [Local Validation and Packaging Tools](modules/local-tooling.md)
@@ -41,6 +42,7 @@
 - [Generation Metadata](GENERATION.md)
 
 ## Update Notes
+- 2026-04-15: Added Hermes Attestation Guardian module page with human-friendly claim-to-code/test mappings from PR description.
 - 2026-03-10: Added ClawSec Scanner module documentation and linked it under Modules.
 - 2026-02-26: Added Operations pages and updated navigation guidance after migrating root docs into wiki pages.
 
@@ -53,5 +55,7 @@
 - scripts/populate-local-skills.sh
 - skills/clawsec-suite/skill.json
 - skills/clawsec-scanner/skill.json
+- skills/hermes-attestation-guardian/skill.json
 - wiki/modules/clawsec-scanner.md
+- wiki/modules/hermes-attestation-guardian.md
 - .github/workflows/ci.yml
