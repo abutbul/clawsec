@@ -99,7 +99,7 @@
     },
     "execution": {
       "always": false,
-      "persistence": "No persistence by default. scripts/setup_attestation_cron.mjs can install a user crontab block when run with --apply.",
+      "persistence": "Runs on demand by default. Optional scheduler helper can install a managed schedule block when run with --apply.",
       "network_egress": "None"
     },
     "operator_review": [

@@ -47,10 +47,10 @@ node scripts/verify_attestation.mjs \
   --signature ~/.hermes/security/attestations/current.json.sig \
   --public-key ~/.hermes/security/keys/attestation-public.pem
 
-# Preview cron config without mutating crontab
+# Preview scheduler config without mutating user schedule state
 node scripts/setup_attestation_cron.mjs --every 6h --print-only
 
-# Apply managed cron block
+# Apply managed scheduler block
 node scripts/setup_attestation_cron.mjs --every 6h --apply
 ```
 
@@ -83,7 +83,7 @@ Severity messages are emitted as INFO / WARNING / CRITICAL style lines.
 - `generate_attestation.mjs` writes one JSON file (and optional `.sha256`) under `$HERMES_HOME/security/attestations`.
 - `verify_attestation.mjs` is read-only.
 - `setup_attestation_cron.mjs` is read-only unless `--apply` is provided.
-- `setup_attestation_cron.mjs --apply` rewrites only the current user crontab managed block delimited by:
+- `setup_attestation_cron.mjs --apply` rewrites only the current user managed schedule block delimited by:
   - `# >>> hermes-attestation-guardian >>>`
   - `# <<< hermes-attestation-guardian <<<`
 

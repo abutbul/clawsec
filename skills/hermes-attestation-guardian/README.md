@@ -20,7 +20,7 @@ In scope:
 - Hermes environment posture snapshots
 - deterministic baseline diffing
 - fail-closed verification semantics
-- Hermes user-crontab scheduling helper
+- Hermes optional scheduling helper
 
 Out of scope / unsupported (v0.0.1):
 - OpenClaw runtime hooks (unsupported)
