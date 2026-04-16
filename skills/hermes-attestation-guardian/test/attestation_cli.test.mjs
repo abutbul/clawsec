@@ -76,6 +76,21 @@ await withTempDir(async (tempDir) => {
   ]);
   assert.equal(verifyTrustedBaseline.status, 0, `trusted baseline should verify: ${verifyTrustedBaseline.stderr}`);
 
+  const hardLinkPath = path.join(attestationsDir, "current-hardlink.json");
+  const oldContent = "old-attestation-body\n";
+  await fs.writeFile(outputPath, oldContent, "utf8");
+  await fs.link(outputPath, hardLinkPath);
+
+  const atomicRewrite = runNode(generatorScript, ["--output", outputPath, "--generated-at", generatedAt], {
+    HERMES_HOME: hermesHome,
+  });
+  assert.equal(atomicRewrite.status, 0, `atomic rewrite failed: ${atomicRewrite.stderr}`);
+
+  const rewrittenContent = await fs.readFile(outputPath, "utf8");
+  const hardLinkedContent = await fs.readFile(hardLinkPath, "utf8");
+  assert.notEqual(rewrittenContent, hardLinkedContent, "output rewrite should atomically replace file entry");
+  assert.equal(hardLinkedContent, oldContent, "hard link should preserve previous file body after atomic replace");
+
   const invalidCurrent = JSON.parse(attestationRaw);
   delete invalidCurrent.platform;
   await fs.writeFile(outputPath, JSON.stringify(invalidCurrent, null, 2), "utf8");

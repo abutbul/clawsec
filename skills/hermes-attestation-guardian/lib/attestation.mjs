@@ -113,14 +113,8 @@ export function resolveHermesScopedOutputPath(outputPath, hermesHome = detectHer
     }
   }
 
-  try {
-    if (fs.lstatSync(resolvedOutput).isSymbolicLink()) {
-      throw new Error(`output path must not be a symlink: ${resolvedOutput}`);
-    }
-  } catch (error) {
-    if (error?.code !== "ENOENT") {
-      throw error;
-    }
+  if (fs.existsSync(resolvedOutput) && fs.lstatSync(resolvedOutput).isSymbolicLink()) {
+    throw new Error(`output path must not be a symlink: ${resolvedOutput}`);
   }
 
   return resolvedOutput;
@@ -200,10 +194,14 @@ function readEnvBool(name, fallback = false) {
   if (typeof raw !== "string") {
     return fallback;
   }
-  const norm = raw.trim().toLowerCase();
-  if (["1", "true", "yes", "on", "enabled"].includes(norm)) return true;
-  if (["0", "false", "no", "off", "disabled"].includes(norm)) return false;
-  return fallback;
+  return bool(raw, fallback);
+}
+
+function configBool(value, envFallback = false) {
+  if (value === undefined || value === null) {
+    return envFallback;
+  }
+  return bool(value, false);
 }
 
 function normalizePath(input, hermesHome) {
@@ -237,14 +235,14 @@ export function buildAttestation({
   const config = configState.config || {};
 
   const gateways = {
-    telegram: bool(config?.gateways?.telegram?.enabled, readEnvBool("HERMES_GATEWAY_TELEGRAM_ENABLED", false)),
-    matrix: bool(config?.gateways?.matrix?.enabled, readEnvBool("HERMES_GATEWAY_MATRIX_ENABLED", false)),
-    discord: bool(config?.gateways?.discord?.enabled, readEnvBool("HERMES_GATEWAY_DISCORD_ENABLED", false)),
+    telegram: configBool(config?.gateways?.telegram?.enabled, readEnvBool("HERMES_GATEWAY_TELEGRAM_ENABLED", false)),
+    matrix: configBool(config?.gateways?.matrix?.enabled, readEnvBool("HERMES_GATEWAY_MATRIX_ENABLED", false)),
+    discord: configBool(config?.gateways?.discord?.enabled, readEnvBool("HERMES_GATEWAY_DISCORD_ENABLED", false)),
   };
 
   const riskyToggles = {
-    allow_unsigned_mode: bool(config?.security?.allow_unsigned_mode, readEnvBool("HERMES_ALLOW_UNSIGNED_MODE", false)),
-    bypass_verification: bool(config?.security?.bypass_verification, readEnvBool("HERMES_BYPASS_VERIFICATION", false)),
+    allow_unsigned_mode: configBool(config?.security?.allow_unsigned_mode, readEnvBool("HERMES_ALLOW_UNSIGNED_MODE", false)),
+    bypass_verification: configBool(config?.security?.bypass_verification, readEnvBool("HERMES_BYPASS_VERIFICATION", false)),
   };
 
   const feedStatus = String(

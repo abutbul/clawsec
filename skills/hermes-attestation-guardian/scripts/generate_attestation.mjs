@@ -88,6 +88,49 @@ function parseArgs(argv) {
   return args;
 }
 
+function isSymlinkPath(filePath) {
+  try {
+    return fs.lstatSync(filePath).isSymbolicLink();
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function writeAtomically(outPath, body) {
+  const dir = path.dirname(outPath);
+  const base = path.basename(outPath);
+  const tempPath = path.join(dir, `.${base}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  let fd = null;
+
+  try {
+    fd = fs.openSync(tempPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY, 0o600);
+    fs.writeFileSync(fd, body, "utf8");
+    fs.fsyncSync(fd);
+    fs.closeSync(fd);
+    fd = null;
+
+    if (isSymlinkPath(outPath)) {
+      throw new Error(`output path must not be a symlink: ${outPath}`);
+    }
+
+    fs.renameSync(tempPath, outPath);
+  } finally {
+    if (fd !== null) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // best-effort cleanup
+      }
+    }
+    if (fs.existsSync(tempPath)) {
+      fs.unlinkSync(tempPath);
+    }
+  }
+}
+
 function run() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -113,7 +156,7 @@ function run() {
   const outPath = resolveHermesScopedOutputPath(args.output);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   const body = stableStringify(attestation, args.compact ? 0 : 2);
-  fs.writeFileSync(outPath, `${body}\n`, "utf8");
+  writeAtomically(outPath, `${body}\n`);
 
   if (args.writeSha256) {
     const shaPath = `${outPath}.sha256`;

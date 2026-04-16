@@ -244,6 +244,31 @@ async function testBooleanConfigCoercionDoesNotEnableFalseStrings() {
         assert.equal(attestation.posture.runtime.gateways.telegram, true);
       },
     );
+
+    await withPatchedEnv(
+      {
+        HERMES_HOME: hermesHome,
+        HERMES_GATEWAY_TELEGRAM_ENABLED: "true",
+        HERMES_ALLOW_UNSIGNED_MODE: "true",
+      },
+      async () => {
+        await fs.writeFile(
+          path.join(hermesHome, "config.json"),
+          JSON.stringify({
+            gateways: {
+              telegram: { enabled: "maybe" },
+            },
+            security: {
+              allow_unsigned_mode: { bad: true },
+            },
+          }),
+          "utf8",
+        );
+        const attestation = buildAttestation({ generatedAt: "2026-04-15T18:00:00.000Z" });
+        assert.equal(attestation.posture.runtime.gateways.telegram, false);
+        assert.equal(attestation.posture.runtime.risky_toggles.allow_unsigned_mode, false);
+      },
+    );
   });
 }
 
