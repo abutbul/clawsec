@@ -168,4 +168,19 @@ await withTempDir(async (tempDir) => {
   assert.ok(symlinkEscape.stderr.includes("output path must stay under"), symlinkEscape.stderr);
 });
 
+await withTempDir(async (tempDir) => {
+  const hermesHome = path.join(tempDir, ".hermes");
+  const attestationsDir = path.join(hermesHome, "security", "attestations");
+  const outputPath = path.join(attestationsDir, "broken-link.json");
+
+  await fs.mkdir(attestationsDir, { recursive: true });
+  await fs.symlink(path.join(tempDir, "outside-target.json"), outputPath);
+
+  const brokenSymlinkOutput = runNode(generatorScript, ["--output", outputPath], {
+    HERMES_HOME: hermesHome,
+  });
+  assert.notEqual(brokenSymlinkOutput.status, 0, "generator must reject broken symlink output paths");
+  assert.ok(brokenSymlinkOutput.stderr.includes("output path must not be a symlink"), brokenSymlinkOutput.stderr);
+});
+
 console.log("attestation_cli.test.mjs: ok");

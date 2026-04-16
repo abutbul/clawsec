@@ -113,8 +113,14 @@ export function resolveHermesScopedOutputPath(outputPath, hermesHome = detectHer
     }
   }
 
-  if (fs.existsSync(resolvedOutput) && fs.lstatSync(resolvedOutput).isSymbolicLink()) {
-    throw new Error(`output path must not be a symlink: ${resolvedOutput}`);
+  try {
+    if (fs.lstatSync(resolvedOutput).isSymbolicLink()) {
+      throw new Error(`output path must not be a symlink: ${resolvedOutput}`);
+    }
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      throw error;
+    }
   }
 
   return resolvedOutput;
