@@ -3,7 +3,7 @@ import { User, Bot, Copy, Check, Lock } from 'lucide-react';
 import { Footer } from '../components/Footer';
 
 const FILE_NAMES = ['SOUL.md', 'AGENTS.md', 'USER.md', 'TOOLS.md', 'IDENTITY.md', 'HEARTBEAT.md', 'MEMORY.md'];
-const PLATFORM_NAMES = ['OpenClaw', 'NanoClaw'];
+const PLATFORM_NAMES = ['OpenClaw', 'NanoClaw', 'Hermes'];
 const FILE_LOCK_REVEAL_DELAY_MS = 1600;
 
 export const Home: React.FC = () => {
@@ -97,7 +97,7 @@ export const Home: React.FC = () => {
           agents
         </h2>
         <p className="text-lg md:text-xl text-gray-400 leading-relaxed">
-          A complete security skill suite for OpenClaw and NanoClaw agents. Protect your{' '}
+          A complete security skill suite for OpenClaw, NanoClaw, and Hermes agents. Protect your{' '}
           <code
             key={currentFileIndex}
             className="px-2 py-1 rounded text-clawd-accent inline-block align-baseline relative text-base"
