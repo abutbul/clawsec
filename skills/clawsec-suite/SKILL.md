@@ -79,7 +79,11 @@ BASE="https://github.com/prompt-security/clawsec/releases/download/clawsec-suite
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-# Pinned release-signing public key (verify fingerprint out-of-band on first use)
+# Mandatory release verify gate (fail-closed):
+#   1) checksums.json
+#   2) checksums.sig
+#   3) pinned signing public-key fingerprint
+# Do not install if any are missing or mismatched.
 # Fingerprint (SHA-256 of SPKI DER): 711424e4535f84093fefb024cd1ca4ec87439e53907b305b79a631d5befba9c8
 RELEASE_PUBKEY_SHA256="711424e4535f84093fefb024cd1ca4ec87439e53907b305b79a631d5befba9c8"
 cat > "$TEMP_DIR/release-signing-public.pem" <<'PEM'
@@ -96,10 +100,13 @@ fi
 
 ZIP_NAME="clawsec-suite-v${VERSION}.zip"
 
-# 1) Download release archive + signed checksums manifest + signing public key
+# 1) Fetch release archive + mandatory verify inputs (fail-closed)
 curl -fsSL "$BASE/$ZIP_NAME" -o "$TEMP_DIR/$ZIP_NAME"
 curl -fsSL "$BASE/checksums.json" -o "$TEMP_DIR/checksums.json"
 curl -fsSL "$BASE/checksums.sig" -o "$TEMP_DIR/checksums.sig"
+
+[ -s "$TEMP_DIR/checksums.json" ] || { echo "ERROR: missing checksums.json" >&2; exit 1; }
+[ -s "$TEMP_DIR/checksums.sig" ] || { echo "ERROR: missing checksums.sig" >&2; exit 1; }
 
 # 2) Verify checksums manifest signature before trusting any hashes
 openssl base64 -d -A -in "$TEMP_DIR/checksums.sig" -out "$TEMP_DIR/checksums.sig.bin"
@@ -130,7 +137,7 @@ if [ "$EXPECTED_ZIP_SHA" != "$ACTUAL_ZIP_SHA" ]; then
   exit 1
 fi
 
-echo "Checksums manifest signature and archive hash verified."
+echo "Release verify gate passed (checksums.json + checksums.sig + pinned key fingerprint)."
 
 # 3) Install verified archive
 mkdir -p "$INSTALL_ROOT"

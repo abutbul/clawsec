@@ -5,6 +5,17 @@ All notable changes to the ClawSec Suite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Clarified Hermes support positioning in the project README, including how suite capabilities align with OpenClaw hook automation and NanoClaw MCP/IPC integration.
+- Tightened manual release verification guidance to require the full triad (`checksums.json`, `checksums.sig`, pinned signing-key fingerprint) before install/extract steps.
+
+### Security
+
+- Hardened release verification instructions and release-note examples to fail closed on missing verification artifacts or signing-key fingerprint mismatch.
+
 ## [0.1.6] - 2026-04-14
 
 ### Added

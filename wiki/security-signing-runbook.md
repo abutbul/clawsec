@@ -136,7 +136,7 @@ Current behavior:
 - publishes signing key to `public/signing-public.pem` and `public/advisories/feed-signing-public.pem`
 - mirrors advisory + signature/checksum/key companions into `public/releases/latest/download/` compatibility paths
 
-### Skill release pipeline (recommended hardening)
+### Skill release pipeline (mandatory verify gate)
 
 Current release generator:
 - `.github/workflows/skill-release.yml`
@@ -145,6 +145,11 @@ Current behavior:
 - creates `checksums.json`, signs it as `checksums.sig`, and verifies signature before publish
 - includes `signing-public.pem` in release assets
 - validates generated public-key fingerprint against canonical key material
+- release notes enforce a fail-closed triad gate before manual install proceeds:
+  1) `checksums.json` must be present/non-empty
+  2) `checksums.sig` must be present/non-empty
+  3) `signing-public.pem` fingerprint must match the pinned value
+- install/extract instructions come only after triad + signature + archive checksum validation
 
 ## 8) Rotation policy and runbook
 

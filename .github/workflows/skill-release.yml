@@ -19,6 +19,7 @@ permissions: read-all
 
 env:
   CLAWHUB_CLI_VERSION: 0.7.0
+  RELEASE_SIGNING_PUBKEY_SHA256: 711424e4535f84093fefb024cd1ca4ec87439e53907b305b79a631d5befba9c8
 
 concurrency:
   group: skill-release-${{ github.ref }}
@@ -969,31 +970,43 @@ jobs:
 
             **Manual download with verification:**
             ```bash
-            # 1. Download the release archive, checksums, and signing material
-            curl -sLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.parse.outputs.skill_name }}-v${{ steps.parse.outputs.version }}.zip
-            curl -sLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/checksums.json
-            curl -sLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/checksums.sig
-            curl -sLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signing-public.pem
+            # 1. Download release archive + mandatory verification inputs (fail-closed)
+            curl -fsSLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.parse.outputs.skill_name }}-v${{ steps.parse.outputs.version }}.zip
+            curl -fsSLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/checksums.json
+            curl -fsSLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/checksums.sig
+            curl -fsSLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signing-public.pem
 
-            # 2. Verify the checksums manifest signature (Ed25519)
+            # 2. Mandatory gate triad: checksums.json + checksums.sig + pinned signing-key fingerprint
+            [ -s checksums.json ] || { echo "ERROR: missing checksums.json" >&2; exit 1; }
+            [ -s checksums.sig ] || { echo "ERROR: missing checksums.sig" >&2; exit 1; }
+            ACTUAL_KEY_SHA256="$(openssl pkey -pubin -in signing-public.pem -outform DER | sha256sum | awk '{print $1}')"
+            [ "$ACTUAL_KEY_SHA256" = "${{ env.RELEASE_SIGNING_PUBKEY_SHA256 }}" ] || { echo "ERROR: signing-public.pem fingerprint mismatch" >&2; exit 1; }
+
+            # 3. Verify checksums manifest signature (Ed25519)
             openssl base64 -d -A -in checksums.sig -out checksums.sig.bin
             openssl pkeyutl -verify -rawin -pubin -inkey signing-public.pem -sigfile checksums.sig.bin -in checksums.json
 
-            # 3. Verify archive checksum from the signed manifest
-            echo "$(jq -r '.archive.sha256' checksums.json)  ${{ steps.parse.outputs.skill_name }}-v${{ steps.parse.outputs.version }}.zip" | sha256sum -c
+            # 4. Verify archive checksum from the signed manifest
+            ZIP_SHA="$(jq -r '.archive.sha256 // empty' checksums.json)"
+            [ -n "$ZIP_SHA" ] || { echo "ERROR: checksums.json missing archive.sha256" >&2; exit 1; }
+            echo "$ZIP_SHA  ${{ steps.parse.outputs.skill_name }}-v${{ steps.parse.outputs.version }}.zip" | sha256sum -c
 
-            # 4. Extract (creates ${{ steps.parse.outputs.skill_name }}/ directory)
+            # 5. Extract only after triad + signature + checksum verification pass
             unzip ${{ steps.parse.outputs.skill_name }}-v${{ steps.parse.outputs.version }}.zip
             ```
 
             ### Verification
 
             `checksums.json` is cryptographically signed (`checksums.sig`) using the ClawSec CI signing key.
-            Verify the signature first, then trust hashes from `checksums.json`:
+            Mandatory fail-closed gate before install: require all 3 inputs (`checksums.json`, `checksums.sig`, pinned signing-key fingerprint), then verify signature:
             ```bash
-            curl -sLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/checksums.json
-            curl -sLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/checksums.sig
-            curl -sLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signing-public.pem
+            curl -fsSLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/checksums.json
+            curl -fsSLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/checksums.sig
+            curl -fsSLO https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/signing-public.pem
+            [ -s checksums.json ] || { echo "ERROR: missing checksums.json" >&2; exit 1; }
+            [ -s checksums.sig ] || { echo "ERROR: missing checksums.sig" >&2; exit 1; }
+            ACTUAL_KEY_SHA256="$(openssl pkey -pubin -in signing-public.pem -outform DER | sha256sum | awk '{print $1}')"
+            [ "$ACTUAL_KEY_SHA256" = "${{ env.RELEASE_SIGNING_PUBKEY_SHA256 }}" ] || { echo "ERROR: signing-public.pem fingerprint mismatch" >&2; exit 1; }
             openssl base64 -d -A -in checksums.sig -out checksums.sig.bin
             openssl pkeyutl -verify -rawin -pubin -inkey signing-public.pem -sigfile checksums.sig.bin -in checksums.json
             ```
