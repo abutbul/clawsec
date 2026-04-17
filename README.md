@@ -6,7 +6,7 @@
 
 <div align="center">
 
-## Secure Your OpenClaw and NanoClaw Agents with a Complete Security Skill Suite
+## Secure Your OpenClaw, NanoClaw, and Hermes Agents with a Complete Security Skill Suite
 
 <h4>Brought to you by <a href="https://prompt.security">Prompt Security</a>, the Platform for AI Security</h4>
 
@@ -37,8 +37,19 @@ ClawSec is a **complete security skill suite for AI agent platforms**. It provid
 
 ### Supported Platforms
 
-- **OpenClaw** (MoltBot, Clawdbot, and clones) - Full suite with skill installer, file integrity protection, and security audits
+- **OpenClaw** (MoltBot, Clawdbot, and clones) - Full suite with skill installer, file integrity protection, security audits, and hook-based automation
 - **NanoClaw** - Containerized WhatsApp bot security with MCP tools for advisory monitoring, signature verification, and file integrity
+- **Hermes** - Supported via standalone ClawSec skills and source-first install flow for advisory monitoring and file-integrity protections without requiring OpenClaw hooks
+
+### Hermes Support (How It Relates to OpenClaw/NanoClaw)
+
+For operators running Hermes, ClawSec support is practical and incremental:
+
+- Use the same signed advisory feed data and integrity checks used across ClawSec
+- Adopt standalone protections such as `soul-guardian` (drift/integrity) and `clawsec-feed` (threat intelligence)
+- Add platform-specific layers only where they apply: OpenClaw gets hook/suite automation, while NanoClaw uses its dedicated MCP/IPC integration skill
+
+This keeps security coverage consistent across agent stacks while preserving each platform's native integration model.
 
 ### Core Capabilities
 
@@ -165,10 +176,10 @@ The **clawsec-suite** is a skill-of-skills manager that installs, verifies, and 
 
 | Skill | Description | Installation | Compatibility |
 |-------|-------------|--------------|---------------|
-| 📡 **clawsec-feed** | Security advisory feed monitoring with live CVE updates | ✅ Included by default | All agents |
+| 📡 **clawsec-feed** | Security advisory feed monitoring with live CVE updates | ✅ Included by default | All agents (including Hermes) |
 | 🔭 **openclaw-audit-watchdog** | Automated daily audits with email reporting | ⚙️ Optional (install separately) | OpenClaw/MoltBot/Clawdbot |
-| 👻 **soul-guardian** | Drift detection and file integrity guard with auto-restore | ⚙️ Optional | All agents |
-| 🤝 **clawtributor** | Community incident reporting | ❌ Optional (Explicit request) | All agents |
+| 👻 **soul-guardian** | Drift detection and file integrity guard with auto-restore | ⚙️ Optional | All agents (including Hermes) |
+| 🤝 **clawtributor** | Community incident reporting | ❌ Optional (Explicit request) | All agents (including Hermes) |
 
 > ⚠️ **clawtributor** is not installed by default as it may share anonymized incident data. Install only on explicit user request.
 
