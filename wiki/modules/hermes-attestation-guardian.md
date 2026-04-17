@@ -274,6 +274,7 @@ node skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs
 ```
 
 ## Update Notes
+- 2026-04-17: Added v0.0.2 release-hardening notes: mandatory release verify triad (`checksums.json`, `checksums.sig`, pinned signing-key fingerprint), Hermes guard signature-aware trust policy note, and sandbox regression coverage for verify-gate + clean install.
 - 2026-04-15: Replaced table-style PR claim mapping with full narrative claim breakdowns (people-speak, wiring, verification, and concrete scenarios per claim).
 
 ## Source References
