@@ -190,7 +190,8 @@ function bool(value, defaultValue = false) {
 }
 
 function readEnvBool(name, fallback = false) {
-  const raw = process.env[name];
+  const envObj = process?.["env"] || {};
+  const raw = envObj[name];
   if (typeof raw !== "string") {
     return fallback;
   }

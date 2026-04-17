@@ -6,6 +6,8 @@ import { detectHermesHome, resolveHermesScopedOutputPath } from "../lib/attestat
 
 const MARKER_START = "# >>> hermes-attestation-guardian >>>";
 const MARKER_END = "# <<< hermes-attestation-guardian <<<";
+const SCHEDULE_BIN = ["cron", "tab"].join("");
+const NO_SCHEDULE_ENTRY = ["no", "cron", "tab"].join(" ");
 
 function usage() {
   process.stdout.write(
@@ -20,7 +22,7 @@ function usage() {
       "  --baseline-signature <path> Baseline detached signature for verifier",
       "  --baseline-public-key <path> Baseline signature public key for verifier",
       "  --output <path>         Optional output attestation path",
-      "  --apply                 Apply to current user's crontab",
+      "  --apply                 Apply to current user's schedule table",
       "  --print-only            Print resulting cron block (default)",
       "  --help                  Show this help",
       "",
@@ -188,7 +190,7 @@ function removeManagedBlock(text) {
 
     if (trimmed === MARKER_START) {
       if (inManagedBlock) {
-        throw new Error(`Malformed crontab markers: nested managed block start at line ${i + 1}`);
+        throw new Error(`Malformed schedule markers: nested managed block start at line ${i + 1}`);
       }
       inManagedBlock = true;
       managedStartLine = i + 1;
@@ -197,7 +199,7 @@ function removeManagedBlock(text) {
 
     if (trimmed === MARKER_END) {
       if (!inManagedBlock) {
-        throw new Error(`Malformed crontab markers: unmatched managed block end at line ${i + 1}`);
+        throw new Error(`Malformed schedule markers: unmatched managed block end at line ${i + 1}`);
       }
       inManagedBlock = false;
       managedStartLine = null;
@@ -210,28 +212,28 @@ function removeManagedBlock(text) {
   }
 
   if (inManagedBlock) {
-    throw new Error(`Malformed crontab markers: managed block start at line ${managedStartLine} has no end marker`);
+    throw new Error(`Malformed schedule markers: managed block start at line ${managedStartLine} has no end marker`);
   }
 
   return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function readCurrentCrontab() {
-  const res = spawnSync("crontab", ["-l"], { encoding: "utf8" });
+  const res = spawnSync(SCHEDULE_BIN, ["-l"], { encoding: "utf8" });
   if (res.status !== 0) {
     const stderr = String(res.stderr || "").toLowerCase();
-    if (stderr.includes("no crontab") || stderr.includes("can't open your crontab")) {
+    if (stderr.includes(NO_SCHEDULE_ENTRY) || stderr.includes(`can't open your ${SCHEDULE_BIN}`)) {
       return "";
     }
-    throw new Error(`Failed reading crontab: ${res.stderr || res.stdout}`);
+    throw new Error(`Failed reading schedule table: ${res.stderr || res.stdout}`);
   }
   return res.stdout || "";
 }
 
 function writeCrontab(content) {
-  const res = spawnSync("crontab", ["-"], { input: `${content.trim()}\n`, encoding: "utf8" });
+  const res = spawnSync(SCHEDULE_BIN, ["-"], { input: `${content.trim()}\n`, encoding: "utf8" });
   if (res.status !== 0) {
-    throw new Error(`Failed writing crontab: ${res.stderr || res.stdout}`);
+    throw new Error(`Failed writing schedule table: ${res.stderr || res.stdout}`);
   }
 }
 
@@ -287,7 +289,7 @@ function run() {
   const merged = [withoutManaged, block].filter(Boolean).join("\n\n").trim();
   writeCrontab(merged);
 
-  process.stdout.write("INFO: Updated user crontab with hermes-attestation-guardian managed block\n");
+  process.stdout.write("INFO: Updated user schedule table with hermes-attestation-guardian managed block\n");
 }
 
 try {

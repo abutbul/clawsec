@@ -97,7 +97,7 @@ process.exit(2);
   });
 
   assert.notEqual(result.status, 0, "unmatched start marker must fail closed");
-  assert.ok(result.stderr.includes("Malformed crontab markers"), result.stderr);
+  assert.ok(result.stderr.includes("Malformed schedule markers"), result.stderr);
   const log = await fs.readFile(logPath, "utf8");
   assert.ok(log.includes("list"), "script should read crontab before writing");
   const wrote = await fs.access(writePath).then(() => true).catch(() => false);
@@ -138,7 +138,7 @@ process.exit(2);
   });
 
   assert.notEqual(result.status, 0, "unmatched end marker must fail closed");
-  assert.ok(result.stderr.includes("Malformed crontab markers"), result.stderr);
+  assert.ok(result.stderr.includes("Malformed schedule markers"), result.stderr);
   const log = await fs.readFile(logPath, "utf8");
   assert.ok(log.includes("list"), "script should read crontab before writing");
   const wrote = await fs.access(writePath).then(() => true).catch(() => false);
@@ -179,7 +179,7 @@ process.exit(2);
   });
 
   assert.notEqual(result.status, 0, "nested start marker must fail closed");
-  assert.ok(result.stderr.includes("Malformed crontab markers"), result.stderr);
+  assert.ok(result.stderr.includes("Malformed schedule markers"), result.stderr);
   const log = await fs.readFile(logPath, "utf8");
   assert.ok(log.includes("list"), "script should read crontab before writing");
   const wrote = await fs.access(writePath).then(() => true).catch(() => false);

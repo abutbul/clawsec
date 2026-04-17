@@ -1,6 +1,6 @@
 ---
 name: hermes-attestation-guardian
-version: 0.0.1
+version: 0.0.2
 description: Hermes-only runtime security attestation and drift detection skill for operator-managed Hermes infrastructure.
 homepage: https://clawsec.prompt.security
 clawdis:
@@ -18,6 +18,42 @@ IMPORTANT SCOPE:
 ## Goal
 
 Generate deterministic Hermes posture attestations, verify them with fail-closed integrity checks, and compare baseline drift using stable severity mapping.
+
+## Mandatory release verification gate (before install)
+
+Before treating any release install instructions as valid, verify all three inputs:
+
+1) `checksums.json`
+2) `checksums.sig`
+3) pinned signing public-key fingerprint
+
+```bash
+BASE="https://github.com/prompt-security/clawsec/releases/download/hermes-attestation-guardian-v0.0.2"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+curl -fsSL "$BASE/checksums.json" -o "$TMP/checksums.json"
+curl -fsSL "$BASE/checksums.sig" -o "$TMP/checksums.sig"
+curl -fsSL "$BASE/signing-public.pem" -o "$TMP/signing-public.pem"
+
+[ -s "$TMP/checksums.json" ] || { echo "ERROR: missing checksums.json" >&2; exit 1; }
+[ -s "$TMP/checksums.sig" ] || { echo "ERROR: missing checksums.sig" >&2; exit 1; }
+
+EXPECTED_PUBKEY_SHA256="711424e4535f84093fefb024cd1ca4ec87439e53907b305b79a631d5befba9c8"
+ACTUAL_PUBKEY_SHA256="$(openssl pkey -pubin -in "$TMP/signing-public.pem" -outform DER | sha256sum | awk '{print $1}')"
+[ "$ACTUAL_PUBKEY_SHA256" = "$EXPECTED_PUBKEY_SHA256" ] || {
+  echo "ERROR: signing-public.pem fingerprint mismatch" >&2
+  exit 1
+}
+
+openssl base64 -d -A -in "$TMP/checksums.sig" -out "$TMP/checksums.sig.bin"
+openssl pkeyutl -verify -rawin -pubin -inkey "$TMP/signing-public.pem" \
+  -sigfile "$TMP/checksums.sig.bin" -in "$TMP/checksums.json" >/dev/null
+```
+
+## Hermes guard trust policy note
+
+When installing from community sources, configure Hermes guard to use signature-aware trust (trusted signer fingerprint allowlist) rather than source-name-only trust. Unknown signer fingerprints should stay on community policy, and invalid signatures must remain blocked.
 
 ## Commands
 
@@ -89,6 +125,11 @@ Severity messages are emitted as INFO / WARNING / CRITICAL style lines.
 
 ## Notes
 
+- Hermes scan + test context is `.mjs`-based by design:
+  - runtime scripts: `scripts/*.mjs`
+  - shared libraries: `lib/*.mjs`
+  - regression tests: `test/*.test.mjs`
+- Keep `.mjs` paths/extensions stable so scanner scope, SBOM wiring, and test harness references stay valid.
 - Default output root is `~/.hermes/security/attestations/`.
 - No destructive remediation actions (delete/restore/quarantine) are implemented.
 - Operator policy file is optional JSON with:

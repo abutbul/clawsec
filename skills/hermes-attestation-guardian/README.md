@@ -2,7 +2,7 @@
 
 Hermes-only security attestation and drift detection skill.
 
-Status: implemented (v0.0.1), Hermes-only.
+Status: implemented (v0.0.2), Hermes-only.
 
 ## What it does
 
@@ -22,18 +22,38 @@ In scope:
 - fail-closed verification semantics
 - Hermes optional scheduling helper
 
-Out of scope / unsupported (v0.0.1):
+Out of scope / unsupported (v0.0.2):
 - OpenClaw runtime hooks (unsupported)
 - destructive auto-remediation
 - automatic rollback of runtime configuration
 
 ## Quickstart
 
+Before install, enforce the mandatory verification triad:
+- `checksums.json`
+- `checksums.sig`
+- pinned signing public-key fingerprint
+
+After verification passes, use the commands below.
+
 ```bash
 node scripts/generate_attestation.mjs
 node scripts/verify_attestation.mjs --input ~/.hermes/security/attestations/current.json
 node scripts/setup_attestation_cron.mjs --every 6h --print-only
 ```
+
+## Hermes guard trust policy recommendation
+
+When installing community-sourced skill bundles, prefer Hermes guard signature-aware trust policy (trusted signer fingerprint allowlist) over source-name-only trust. Unknown signer fingerprints should remain community policy and invalid signatures should stay blocked.
+
+## Hermes scan/test context (.mjs coverage)
+
+Hermes-side scan and review context for this plugin is intentionally `.mjs`-first:
+- runtime entrypoints are `scripts/*.mjs`
+- shared logic is `lib/*.mjs`
+- regression tests are `test/*.test.mjs`
+
+Keep these extensions unchanged so security scanning, SBOM references, and test harness wiring remain consistent.
 
 ## Tests
 
