@@ -6,7 +6,7 @@
 
 <div align="center">
 
-## Secure Your OpenClaw and NanoClaw Agents with a Complete Security Skill Suite
+## Secure Your OpenClaw, NanoClaw, and Hermes Agents with a Complete Security Skill Suite
 
 <h4>Brought to you by <a href="https://prompt.security">Prompt Security</a>, the Platform for AI Security</h4>
 
@@ -39,6 +39,7 @@ ClawSec is a **complete security skill suite for AI agent platforms**. It provid
 
 - **OpenClaw** (MoltBot, Clawdbot, and clones) - Full suite with skill installer, file integrity protection, and security audits
 - **NanoClaw** - Containerized WhatsApp bot security with MCP tools for advisory monitoring, signature verification, and file integrity
+- **Hermes** - Hermes-native security skills for attestation generation, fail-closed verification, and baseline drift detection
 
 ### Core Capabilities
 
@@ -152,6 +153,29 @@ See [`skills/clawsec-nanoclaw/INSTALL.md`](skills/clawsec-nanoclaw/INSTALL.md) f
 2. Integrate MCP tools in container
 3. Add IPC handlers and cache service on host
 4. Restart NanoClaw
+
+---
+
+## 🛡️ Hermes Platform Support
+
+ClawSec includes a Hermes-native security skill focused on deterministic posture attestations and fail-closed verification flows.
+
+### hermes-attestation-guardian Skill
+
+**Location**: `skills/hermes-attestation-guardian/`
+
+What it provides:
+- Deterministic attestation generation for Hermes posture snapshots
+- Fail-closed verification (schema, digest, expected checksum, optional detached signature)
+- Trusted-baseline drift classification with severity thresholds
+- Optional scheduler helper with preview-first behavior and managed marker block updates
+
+Quick start:
+```bash
+node skills/hermes-attestation-guardian/scripts/generate_attestation.mjs
+node skills/hermes-attestation-guardian/scripts/verify_attestation.mjs --input ~/.hermes/security/attestations/current.json
+node skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs --every 6h --print-only
+```
 
 ---
 

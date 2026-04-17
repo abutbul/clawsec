@@ -7,6 +7,11 @@
 - macOS: **Good**, with caveats around POSIX tool availability and Homebrew-specific assumptions.
 - Windows: **Partial**, Node/Python pieces work, but many shell-first install/release workflows still require WSL/Git Bash.
 
+### Platform support coverage
+- **OpenClaw**: Full suite coverage (`clawsec-suite`, `openclaw-audit-watchdog`, advisory hooks/install paths) and represented in compatibility findings CP-001..CP-010.
+- **NanoClaw**: Dedicated platform package coverage via `skills/clawsec-nanoclaw` and related wiki module/docs.
+- **Hermes**: Dedicated Hermes-native coverage via `skills/hermes-attestation-guardian` (deterministic attestation generation, fail-closed verification, trusted-baseline drift checks, preview-first scheduler helper). This report now explicitly tracks Hermes support scope alongside OpenClaw/NanoClaw.
+
 ### Highest-risk incompatibilities
 1. **(Fixed)** Literal `$HOME` path creation risk in audit watchdog cron setup payload generation.
 2. **(Fixed)** Path env vars accepted as raw strings in multiple Node entrypoints without expansion/validation.
@@ -109,3 +114,6 @@ This could produce paths like `~/.openclaw/workspace/$HOME/...`.
 - scripts/populate-local-skills.sh
 - wiki/remediation-plan.md
 - wiki/platform-verification.md
+- wiki/modules/hermes-attestation-guardian.md
+- skills/hermes-attestation-guardian/README.md
+- skills/hermes-attestation-guardian/SKILL.md
