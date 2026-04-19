@@ -7,7 +7,6 @@ import { detectHermesHome, resolveHermesScopedOutputPath } from "../lib/attestat
 const MARKER_START = "# >>> hermes-attestation-guardian >>>";
 const MARKER_END = "# <<< hermes-attestation-guardian <<<";
 const SCHEDULE_BIN = ["cron", "tab"].join("");
-const NO_SCHEDULE_ENTRY = ["no", "cron", "tab"].join(" ");
 
 function usage() {
   process.stdout.write(
@@ -222,7 +221,7 @@ function readCurrentCrontab() {
   const res = spawnSync(SCHEDULE_BIN, ["-l"], { encoding: "utf8" });
   if (res.status !== 0) {
     const stderr = String(res.stderr || "").toLowerCase();
-    if (stderr.includes(NO_SCHEDULE_ENTRY) || stderr.includes(`can't open your ${SCHEDULE_BIN}`)) {
+    if (/\bno\s+crontab\b/.test(stderr) || stderr.includes(`can't open your ${SCHEDULE_BIN}`)) {
       return "";
     }
     throw new Error(`Failed reading schedule table: ${res.stderr || res.stdout}`);

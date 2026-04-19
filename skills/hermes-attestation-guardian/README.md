@@ -29,12 +29,11 @@ Out of scope / unsupported (v0.0.2):
 
 ## Quickstart
 
-Before install, enforce the mandatory verification triad:
-- `checksums.json`
-- `checksums.sig`
-- pinned signing public-key fingerprint
+Canonical release verification and trust-policy guidance lives in `SKILL.md`:
+- `Mandatory release verification gate (before install)`
+- `Hermes guard trust policy note`
 
-After verification passes, use the commands below.
+After running that gate, use the commands below.
 
 ```bash
 node scripts/generate_attestation.mjs
@@ -48,12 +47,7 @@ When installing community-sourced skill bundles, prefer Hermes guard signature-a
 
 ## Hermes scan/test context (.mjs coverage)
 
-Hermes-side scan and review context for this plugin is intentionally `.mjs`-first:
-- runtime entrypoints are `scripts/*.mjs`
-- shared logic is `lib/*.mjs`
-- regression tests are `test/*.test.mjs`
-
-Keep these extensions unchanged so security scanning, SBOM references, and test harness wiring remain consistent.
+For canonical `.mjs` scan/test scope guidance, see `SKILL.md` -> `Notes`.
 
 ## Tests
 
