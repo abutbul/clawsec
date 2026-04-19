@@ -316,37 +316,45 @@ npm run build
 
 ```
 ├── advisories/
-│   └── feed.json              # Main advisory feed (auto-updated from NVD)
-├── components/                 # React components
-├── pages/                      # Page components
-├── wiki/                       # Source-of-truth docs (synced to GitHub Wiki)
+│   ├── feed.json                    # Main advisory feed
+│   ├── feed.json.sig                # Detached signature for feed.json
+│   └── feed-signing-public.pem      # Public key for feed verification
+├── components/                      # React components
+├── pages/                           # Route/page components
+├── wiki/                            # Source-of-truth docs (synced to GitHub Wiki)
 ├── scripts/
-│   ├── generate-wiki-llms.mjs # wiki/*.md -> public/wiki/**/llms.txt
-│   ├── populate-local-feed.sh # Local CVE feed populator
-│   ├── populate-local-skills.sh # Local skills catalog populator
-│   ├── populate-local-wiki.sh # Local wiki llms export populator
-│   └── release-skill.sh       # Manual skill release helper
+│   ├── generate-wiki-llms.mjs       # wiki/*.md -> public/wiki/**/llms.txt
+│   ├── populate-local-feed.sh       # Local CVE feed populator
+│   ├── populate-local-skills.sh     # Local skills catalog populator
+│   ├── populate-local-wiki.sh       # Local wiki llms export populator
+│   ├── prepare-to-push.sh           # Local CI-style quality gate
+│   ├── validate-release-links.sh    # Release link checks
+│   └── release-skill.sh             # Manual skill release helper
 ├── skills/
-│   ├── clawsec-suite/       # 📦 Suite installer (skill-of-skills - start here and have your agent do the rest)
-│   ├── clawsec-feed/        # 📡 Advisory feed skill
-│   ├── clawsec-scanner/     # 🔍 Vulnerability scanner (deps + SAST + OpenClaw DAST)
-│   ├── clawsec-nanoclaw/    # 📱 NanoClaw platform security suite
-│   ├── clawsec-clawhub-checker/ # 🧪 ClawHub reputation checks
-│   ├── clawtributor/           # 🤝 Community reporting skill
-│   ├── openclaw-audit-watchdog/ # 🔭 Automated audit skill
-│   └── soul-guardian/         # 👻 File integrity skill
+│   ├── claw-release/                # 🚀 Release automation workflow skill
+│   ├── clawsec-suite/               # 📦 Suite installer (skill-of-skills)
+│   ├── clawsec-feed/                # 📡 Advisory feed skill
+│   ├── clawsec-scanner/             # 🔍 Vulnerability scanner (deps + SAST + OpenClaw DAST)
+│   ├── clawsec-nanoclaw/            # 📱 NanoClaw platform security suite
+│   ├── clawsec-clawhub-checker/     # 🧪 ClawHub reputation checks
+│   ├── clawtributor/                # 🤝 Community reporting skill
+│   ├── hermes-attestation-guardian/ # 🛡️ Hermes attestation + drift verification
+│   ├── openclaw-audit-watchdog/     # 🔭 Automated audit skill
+│   └── soul-guardian/               # 👻 File integrity skill
 ├── utils/
-│   ├── package_skill.py       # Skill packager utility
-│   └── validate_skill.py      # Skill validator utility
+│   ├── package_skill.py             # Skill packager utility
+│   └── validate_skill.py            # Skill validator utility
 ├── .github/workflows/
-│   ├── ci.yml                 # Cross-platform lint/type/build + tests
-│   ├── pages-verify.yml       # PR-only pages build verification
-│   ├── poll-nvd-cves.yml      # CVE polling pipeline
-│   ├── community-advisory.yml # Approved issue -> advisory PR
-│   ├── skill-release.yml      # Skill release pipeline
-│   ├── wiki-sync.yml          # Sync repo wiki/ to GitHub Wiki
-│   └── deploy-pages.yml       # Pages deployment
-└── public/                     # Static assets + generated publish artifacts
+│   ├── ci.yml                       # Cross-platform lint/type/build + tests
+│   ├── pages-verify.yml             # PR-only pages build/signing verification
+│   ├── poll-nvd-cves.yml            # CVE polling pipeline
+│   ├── community-advisory.yml       # Approved issue -> advisory PR
+│   ├── skill-release.yml            # Skill release/signing pipeline
+│   ├── deploy-pages.yml             # GitHub Pages deployment
+│   ├── wiki-sync.yml                # Sync repo wiki/ to GitHub Wiki
+│   ├── codeql.yml                   # CodeQL security analysis
+│   └── scorecard.yml                # OpenSSF Scorecard checks
+└── public/                          # Static assets + generated wiki exports
 ```
 
 ---
