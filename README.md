@@ -45,16 +45,16 @@ ClawSec is a **complete security skill suite for AI agent platforms**. It provid
 
 | Skil name | supported platform| security feed| config drift | agent self pen testing| chain of supply verification |
 |---|---|---|---|---|---|
-| claw-release | OpenClaw | Unknown | Unknown | Unknown | Yes |
-| clawsec-clawhub-checker | OpenClaw + clawsec-suite integration | Unknown | Unknown | Unknown | Yes |
-| clawsec-feed | OpenClaw | Yes | Unknown | Unknown | Yes |
-| clawsec-nanoclaw | NanoClaw | Yes | Unknown | Yes | Yes |
-| clawsec-scanner | OpenClaw | Unknown | Unknown | Yes | Unknown |
-| clawsec-suite | OpenClaw | Yes | Unknown | Unknown | Yes |
-| clawtributor | OpenClaw | Unknown | Unknown | Unknown | Unknown |
-| hermes-attestation-guardian | Hermes | Unknown | Yes | Unknown | Unknown |
-| openclaw-audit-watchdog | OpenClaw | Unknown | Unknown | Unknown | Unknown |
-| soul-guardian | OpenClaw | Unknown | Yes | Unknown | Unknown |
+| claw-release | OpenClaw | No | No | No | Yes |
+| clawsec-clawhub-checker | OpenClaw + clawsec-suite integration | No | No | No | Yes |
+| clawsec-feed | OpenClaw | Yes | No | No | Yes |
+| clawsec-nanoclaw | NanoClaw | Yes | Yes | Yes | Yes |
+| clawsec-scanner | OpenClaw | Yes | No | Yes | Yes |
+| clawsec-suite | OpenClaw | Yes | Yes | No | Yes |
+| clawtributor | OpenClaw | Yes | No | No | No |
+| hermes-attestation-guardian | Hermes | Yes | Yes | No | Yes |
+| openclaw-audit-watchdog | OpenClaw | No | No | Yes | No |
+| soul-guardian | OpenClaw | No | Yes | No | No |
 
 ### Core Capabilities
 
