@@ -12,6 +12,23 @@
 - **NanoClaw**: Dedicated platform package coverage via `skills/clawsec-nanoclaw` and related wiki module/docs.
 - **Hermes**: Dedicated Hermes-native coverage via `skills/hermes-attestation-guardian` (deterministic attestation generation, fail-closed verification, trusted-baseline drift checks, preview-first scheduler helper). This report now explicitly tracks Hermes support scope alongside OpenClaw/NanoClaw.
 
+### PR-200 skill feature/platform matrix (`skills/*/skill.json`)
+
+| Skill name | Supported platform | Security feed | Config drift | Agent self pen testing | Chain of supply verification |
+|---|---|---|---|---|---|
+| claw-release | OpenClaw (metadata: `openclaw`) | Unknown | Unknown | Unknown | Yes (documented release verification) |
+| clawsec-clawhub-checker | OpenClaw + clawsec-suite integration (metadata: `openclaw`, `integration`) | Unknown | Unknown | Unknown | Yes (documented guarded install reputation gate) |
+| clawsec-feed | OpenClaw (metadata: `openclaw`) | Yes (metadata: feed URL + advisory monitoring description) | Unknown | Unknown | Yes (documented signature/checksum verification for feed artifacts) |
+| clawsec-nanoclaw | NanoClaw (metadata: `platform: nanoclaw`) | Yes (metadata: capabilities include advisory feed monitoring) | Unknown | Yes (metadata: capabilities include agent-initiated vulnerability scans) | Yes (metadata: capabilities include pre-install safety checks + Ed25519 verification) |
+| clawsec-scanner | OpenClaw (metadata: `openclaw`) | Unknown | Unknown | Yes (documented DAST hook execution testing and vulnerability scanning) | Unknown |
+| clawsec-suite | OpenClaw (metadata: `openclaw`; catalog notes compatibility targets for bundled protections) | Yes (metadata: embedded advisory feed monitoring) | Unknown | Unknown | Yes (metadata: cryptographic signature verification + guarded install flow) |
+| clawtributor | OpenClaw (metadata: `openclaw`) | Unknown | Unknown | Unknown | Unknown |
+| hermes-attestation-guardian | Hermes (metadata: `platform: hermes`) | Unknown | Yes (metadata description: drift detection) | Unknown | Unknown |
+| openclaw-audit-watchdog | OpenClaw (metadata: `openclaw`) | Unknown | Unknown | Unknown | Unknown |
+| soul-guardian | OpenClaw (metadata: `openclaw`) | Unknown | Yes (metadata description: drift detection + baseline integrity guard) | Unknown | Unknown |
+
+Note: Values are marked `Unknown` when the capability is not evidenced in current `skill.json` metadata or its embedded capability/description text.
+
 ### Highest-risk incompatibilities
 1. **(Fixed)** Literal `$HOME` path creation risk in audit watchdog cron setup payload generation.
 2. **(Fixed)** Path env vars accepted as raw strings in multiple Node entrypoints without expansion/validation.
