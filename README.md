@@ -130,65 +130,18 @@ Troubleshooting: if you see directories such as `~/.openclaw/workspace/$HOME/...
 
 ---
 
-## 📱 NanoClaw Platform Support
+## 🧭 Platform & Suite Documentation
 
-NanoClaw platform details were moved to the wiki module page:
-- [wiki/modules/nanoclaw-integration.md](wiki/modules/nanoclaw-integration.md)
+Detailed platform and suite docs live in the wiki modules:
+- NanoClaw: [wiki/modules/nanoclaw-integration.md](wiki/modules/nanoclaw-integration.md)
+- Hermes: [wiki/modules/hermes-attestation-guardian.md](wiki/modules/hermes-attestation-guardian.md)
+- ClawSec Suite (OpenClaw): [wiki/modules/clawsec-suite.md](wiki/modules/clawsec-suite.md)
+- CI/CD pipelines: [wiki/modules/automation-release.md](wiki/modules/automation-release.md)
 
-Quick links:
-- Skill install guide: [skills/clawsec-nanoclaw/INSTALL.md](skills/clawsec-nanoclaw/INSTALL.md)
-- Skill package: `skills/clawsec-nanoclaw/`
-
----
-
-## 🛡️ Hermes Platform Support
-
-ClawSec includes a Hermes-native security skill focused on deterministic posture attestations and fail-closed verification flows.
-
-### hermes-attestation-guardian Skill
-
-**Location**: `skills/hermes-attestation-guardian/`
-
-What it provides:
-- Deterministic attestation generation for Hermes posture snapshots
-- Fail-closed verification (schema, digest, expected checksum, optional detached signature)
-- Trusted-baseline drift classification with severity thresholds
-- Optional scheduler helper with preview-first behavior and managed marker block updates
-
-Quick start:
-```bash
-node skills/hermes-attestation-guardian/scripts/generate_attestation.mjs
-node skills/hermes-attestation-guardian/scripts/verify_attestation.mjs --input ~/.hermes/security/attestations/current.json
-node skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs --every 6h --print-only
-```
-
----
-
-## 📦 ClawSec Suite (OpenClaw)
-
-The **clawsec-suite** is a skill-of-skills manager that installs, verifies, and maintains security skills from the ClawSec catalog.
-
-`clawsec-suite` is optional orchestration; skills can still be installed directly as standalone packages.
-
-### ClawSec Skills
-
-| Skill | Description | Installation | Compatibility |
-|-------|-------------|--------------|---------------|
-| 📡 **clawsec-feed** | Security advisory feed monitoring with live CVE updates | ✅ Included by default | All agents |
-| 🔭 **openclaw-audit-watchdog** | Automated daily audits with DM delivery and optional email reporting | ⚙️ Optional (install separately) | OpenClaw/MoltBot/Clawdbot |
-| 👻 **soul-guardian** | Drift detection and file integrity guard with auto-restore | ⚙️ Optional | All agents |
-| 🤝 **clawtributor** | Community incident reporting | ❌ Optional (Explicit request) | All agents |
-
-> ⚠️ **clawtributor** is not installed by default as it may share anonymized incident data. Install only on explicit user request.
-
-> ⚠️ **openclaw-audit-watchdog** is tailored for the OpenClaw/MoltBot/Clawdbot agent family. Other agents receive the universal skill set.
-
-### Suite Features
-
-- **Integrity Verification** - Every skill package includes `checksums.json` with SHA256 hashes
-- **Updates** - Automatic checks for new skill versions 
-- **Self-Healing** - Failed integrity checks trigger automatic re-download from trusted releases
-- **Advisory Cross-Reference** - Installed skills are checked against the security advisory feed
+Quick install links:
+- NanoClaw install: [skills/clawsec-nanoclaw/INSTALL.md](skills/clawsec-nanoclaw/INSTALL.md)
+- Hermes skill package: `skills/hermes-attestation-guardian/`
+- Suite package: `skills/clawsec-suite/`
 
 ---
 
