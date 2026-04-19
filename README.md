@@ -132,42 +132,12 @@ Troubleshooting: if you see directories such as `~/.openclaw/workspace/$HOME/...
 
 ## 📱 NanoClaw Platform Support
 
-ClawSec now supports **NanoClaw**, a containerized WhatsApp bot powered by Claude agents.
+NanoClaw platform details were moved to the wiki module page:
+- [wiki/modules/nanoclaw-integration.md](wiki/modules/nanoclaw-integration.md)
 
-### clawsec-nanoclaw Skill
-
-**Location**: `skills/clawsec-nanoclaw/`
-
-A complete security suite adapted for NanoClaw's containerized architecture:
-
-- **9 MCP Tools** for agents to check vulnerabilities
-  - Advisory checking and browsing
-  - Pre-installation safety checks
-  - Skill package signature verification (Ed25519)
-  - File integrity monitoring
-- **Automatic Advisory Feed** - Fetches and caches advisories every 6 hours
-- **Platform Filtering** - Shows only NanoClaw-relevant advisories
-- **IPC-Based** - Container-safe host communication
-- **Full Documentation** - Installation guide, usage examples, troubleshooting
-
-### Advisory Feed for NanoClaw
-
-The feed now monitors NanoClaw-specific keywords:
-- `NanoClaw` - Direct product name
-- `WhatsApp-bot` - Core functionality
-- `baileys` - WhatsApp client library dependency
-
-Advisories can specify `platforms: ["nanoclaw"]` for platform-specific issues.
-
-### Quick Start for NanoClaw
-
-See [`skills/clawsec-nanoclaw/INSTALL.md`](skills/clawsec-nanoclaw/INSTALL.md) for detailed setup instructions.
-
-**Quick integration:**
-1. Copy skill to NanoClaw deployment
-2. Integrate MCP tools in container
-3. Add IPC handlers and cache service on host
-4. Restart NanoClaw
+Quick links:
+- Skill install guide: [skills/clawsec-nanoclaw/INSTALL.md](skills/clawsec-nanoclaw/INSTALL.md)
+- Skill package: `skills/clawsec-nanoclaw/`
 
 ---
 
@@ -303,82 +273,12 @@ This feature helps agents prioritize vulnerabilities that pose immediate threats
 
 ## 🔄 CI/CD Pipelines
 
-ClawSec uses automated pipelines for continuous security updates and skill distribution.
+CI/CD pipeline details were moved to the wiki module page:
+- [wiki/modules/automation-release.md](wiki/modules/automation-release.md)
 
-### Automated Workflows
-
-| Workflow | Trigger | Description |
-|----------|---------|-------------|
-| **ci.yml** | PRs to `main`, pushes to `main` | Lint/type/build + skill test suites |
-| **pages-verify.yml** | PRs to `main` | Verifies Pages build and signing outputs without publishing |
-| **poll-nvd-cves.yml** | Daily cron (06:00 UTC) | Polls NVD for new CVEs, updates feed |
-| **community-advisory.yml** | Issue labeled `advisory-approved` | Processes community reports into advisories |
-| **skill-release.yml** | Skill tags + metadata PR changes | Validates version parity in PRs and publishes signed skill releases on tags |
-| **deploy-pages.yml** | `workflow_run` after successful trusted CI/release or manual dispatch | Builds and deploys the web interface to GitHub Pages |
-| **wiki-sync.yml** | Pushes to `main` touching `wiki/**` | Syncs `wiki/` to the GitHub Wiki mirror |
-
-### Skill Release Pipeline
-
-When a skill is tagged (e.g., `soul-guardian-v1.0.0`), the pipeline:
-
-1. **Validates** - Checks `skill.json` version matches tag
-2. **Enforces key consistency** - Verifies pinned release key references are consistent across repo PEMs and `skills/clawsec-suite/SKILL.md`
-3. **Generates Checksums** - Creates `checksums.json` with SHA256 hashes for all SBOM files
-4. **Signs + verifies** - Signs `checksums.json` and validates the generated `signing-public.pem` fingerprint against canonical repo key material
-5. **Releases** - Publishes to GitHub Releases with all artifacts
-6. **Supersedes Old Releases** - Deletes older versions within the same major line (tags remain)
-7. **Triggers Pages Update** - Refreshes the skills catalog on the website
-
-### Signing Key Consistency Guardrails
-
-To prevent supply-chain drift, CI now fails fast when signing key references diverge.
-
-Guardrail script:
-- `scripts/ci/verify_signing_key_consistency.sh`
-
-What it checks:
-- `skills/clawsec-suite/SKILL.md` inline public key fingerprint matches `RELEASE_PUBKEY_SHA256`
-- Canonical PEM files all match the same fingerprint:
-  - `clawsec-signing-public.pem`
-  - `advisories/feed-signing-public.pem`
-  - `skills/clawsec-suite/advisories/feed-signing-public.pem`
-- Generated public key in workflows matches canonical key:
-  - `release-assets/signing-public.pem` (release workflow)
-  - `public/signing-public.pem` (pages workflow)
-
-Where enforced:
-- `.github/workflows/skill-release.yml`
-- `.github/workflows/deploy-pages.yml`
-
-### Release Versioning & Superseding
-
-ClawSec follows [semantic versioning](https://semver.org/). When a new version is released:
-
-| Scenario | Behavior |
-|----------|----------|
-| New patch/minor (e.g., 1.0.1, 1.1.0) | Previous releases with same major version are **deleted** |
-| New major (e.g., 2.0.0) | Previous major version (1.x.x) remains for backwards compatibility |
-
-**Why do old releases disappear?**
-
-When you release `skill-v0.0.2`, the previous `skill-v0.0.1` release is automatically deleted to keep the releases page clean. Only the latest version within each major version is retained.
-
-- **Git tags are preserved** - You can always recreate a release from an existing tag if needed
-- **Major versions coexist** - Both `skill-v1.x.x` and `skill-v2.x.x` latest releases remain available for backwards compatibility
-
-### Release Artifacts
-
-Each skill release includes:
-- `checksums.json` - SHA256 hashes for integrity verification
-- `skill.json` - Skill metadata
-- `SKILL.md` - Main skill documentation
-- Additional files from SBOM (scripts, configs, etc.)
-
-### Signing Operations Documentation
-
-For feed/release signing rollout and operations guidance:
-- [`wiki/security-signing-runbook.md`](wiki/security-signing-runbook.md) - key generation, GitHub secrets, rotation/revocation, incident response
-- [`wiki/migration-signed-feed.md`](wiki/migration-signed-feed.md) - phased migration from unsigned feed, enforcement gates, rollback plan
+Related operations docs:
+- [wiki/security-signing-runbook.md](wiki/security-signing-runbook.md)
+- [wiki/migration-signed-feed.md](wiki/migration-signed-feed.md)
 
 ---
 

@@ -6,6 +6,53 @@
 - Package, sign, and publish skill release artifacts from tag events.
 - Build and deploy static website outputs and mirrored release/advisory assets.
 
+## CI/CD Summary (migrated from README)
+
+### Automated workflows
+| Workflow | Trigger | Description |
+| --- | --- | --- |
+| **ci.yml** | PRs to `main`, pushes to `main` | Lint/type/build + skill test suites |
+| **pages-verify.yml** | PRs to `main` | Verifies Pages build and signing outputs without publishing |
+| **poll-nvd-cves.yml** | Daily cron (06:00 UTC) | Polls NVD for new CVEs and updates feed artifacts |
+| **community-advisory.yml** | Issue labeled `advisory-approved` | Processes community reports into advisories |
+| **skill-release.yml** | Skill tags + metadata PR changes | Validates version parity in PRs and publishes signed skill releases on tags |
+| **deploy-pages.yml** | `workflow_run` after successful trusted CI/release or manual dispatch | Builds and deploys the web interface to GitHub Pages |
+| **wiki-sync.yml** | Pushes to `main` touching `wiki/**` | Syncs `wiki/` to the GitHub Wiki mirror |
+
+### Skill release pipeline behavior
+When a skill is tagged (for example, `soul-guardian-v1.0.0`), the pipeline:
+1. Validates `skill.json` version/tag alignment.
+2. Enforces signing-key consistency against canonical repo key material.
+3. Generates `checksums.json` for SBOM files.
+4. Signs and verifies release checksum artifacts.
+5. Publishes GitHub Release assets.
+6. Supersedes older releases within the same major version (tags remain).
+7. Triggers website catalog refresh.
+
+### Signing-key consistency guardrails
+Guardrail script:
+- `scripts/ci/verify_signing_key_consistency.sh`
+
+Enforced in:
+- `.github/workflows/skill-release.yml`
+- `.github/workflows/deploy-pages.yml`
+
+### Release versioning and superseding
+- New patch/minor release: previous releases in same major line are removed.
+- New major release: latest release from previous major line is retained for compatibility.
+- Git tags are preserved and can be used to recreate releases when needed.
+
+### Release artifacts
+Each skill release includes:
+- `checksums.json`
+- `skill.json`
+- `SKILL.md`
+- Additional SBOM-scoped files
+
+Operational docs:
+- `wiki/security-signing-runbook.md`
+- `wiki/migration-signed-feed.md`
+
 ## Key Files
 - `.github/workflows/ci.yml`: lint/type/build/security/test matrix.
 - `.github/workflows/pages-verify.yml`: PR-only Pages build/signing verification (no publish).
