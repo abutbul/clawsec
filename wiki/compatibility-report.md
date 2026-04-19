@@ -14,20 +14,81 @@
 
 ### PR-200 skill feature/platform matrix (`skills/*/skill.json`)
 
-| Skill name | Supported platform | Security feed | Config drift | Agent self pen testing | Chain of supply verification |
-|---|---|---|---|---|---|
-| claw-release | OpenClaw (metadata: `openclaw`) | Unknown | Unknown | Unknown | Yes (documented release verification) |
-| clawsec-clawhub-checker | OpenClaw + clawsec-suite integration (metadata: `openclaw`, `integration`) | Unknown | Unknown | Unknown | Yes (documented guarded install reputation gate) |
-| clawsec-feed | OpenClaw (metadata: `openclaw`) | Yes (metadata: feed URL + advisory monitoring description) | Unknown | Unknown | Yes (documented signature/checksum verification for feed artifacts) |
-| clawsec-nanoclaw | NanoClaw (metadata: `platform: nanoclaw`) | Yes (metadata: capabilities include advisory feed monitoring) | Unknown | Yes (metadata: capabilities include agent-initiated vulnerability scans) | Yes (metadata: capabilities include pre-install safety checks + Ed25519 verification) |
-| clawsec-scanner | OpenClaw (metadata: `openclaw`) | Unknown | Unknown | Yes (documented DAST hook execution testing and vulnerability scanning) | Unknown |
-| clawsec-suite | OpenClaw (metadata: `openclaw`; catalog notes compatibility targets for bundled protections) | Yes (metadata: embedded advisory feed monitoring) | Unknown | Unknown | Yes (metadata: cryptographic signature verification + guarded install flow) |
-| clawtributor | OpenClaw (metadata: `openclaw`) | Unknown | Unknown | Unknown | Unknown |
-| hermes-attestation-guardian | Hermes (metadata: `platform: hermes`) | Unknown | Yes (metadata description: drift detection) | Unknown | Unknown |
-| openclaw-audit-watchdog | OpenClaw (metadata: `openclaw`) | Unknown | Unknown | Unknown | Unknown |
-| soul-guardian | OpenClaw (metadata: `openclaw`) | Unknown | Yes (metadata description: drift detection + baseline integrity guard) | Unknown | Unknown |
+Feature-centric compatibility matrix (skills × features, with platform context):
 
-Note: Values are marked `Unknown` when the capability is not evidenced in current `skill.json` metadata or its embedded capability/description text.
+- Security feed
+  - OpenClaw
+    - clawsec-feed: Yes; metadata evidences feed URL usage and advisory monitoring.
+    - clawsec-suite: Yes; metadata evidences embedded advisory feed monitoring.
+    - claw-release: Unknown; not evidenced in skill metadata/docs.
+    - clawsec-clawhub-checker: Unknown; not evidenced in skill metadata/docs.
+    - clawsec-scanner: Unknown; not evidenced in skill metadata/docs.
+    - clawtributor: Unknown; not evidenced in skill metadata/docs.
+    - openclaw-audit-watchdog: Unknown; not evidenced in skill metadata/docs.
+    - soul-guardian: Unknown; not evidenced in skill metadata/docs.
+  - NanoClaw
+    - clawsec-nanoclaw: Yes; metadata capabilities include advisory feed monitoring.
+  - Hermes
+    - hermes-attestation-guardian: Unknown; not evidenced in skill metadata/docs.
+
+- Config drift
+  - OpenClaw
+    - soul-guardian: Yes; metadata description evidences drift detection and baseline integrity guard.
+    - claw-release: Unknown; not evidenced in skill metadata/docs.
+    - clawsec-clawhub-checker: Unknown; not evidenced in skill metadata/docs.
+    - clawsec-feed: Unknown; not evidenced in skill metadata/docs.
+    - clawsec-scanner: Unknown; not evidenced in skill metadata/docs.
+    - clawsec-suite: Unknown; not evidenced in skill metadata/docs.
+    - clawtributor: Unknown; not evidenced in skill metadata/docs.
+    - openclaw-audit-watchdog: Unknown; not evidenced in skill metadata/docs.
+  - NanoClaw
+    - clawsec-nanoclaw: Unknown; not evidenced in skill metadata/docs.
+  - Hermes
+    - hermes-attestation-guardian: Yes; metadata description evidences drift detection.
+
+- Agent self pen testing
+  - OpenClaw
+    - clawsec-scanner: Yes; documented DAST hook execution testing and vulnerability scanning.
+    - claw-release: Unknown; not evidenced in skill metadata/docs.
+    - clawsec-clawhub-checker: Unknown; not evidenced in skill metadata/docs.
+    - clawsec-feed: Unknown; not evidenced in skill metadata/docs.
+    - clawsec-suite: Unknown; not evidenced in skill metadata/docs.
+    - clawtributor: Unknown; not evidenced in skill metadata/docs.
+    - openclaw-audit-watchdog: Unknown; not evidenced in skill metadata/docs.
+    - soul-guardian: Unknown; not evidenced in skill metadata/docs.
+  - NanoClaw
+    - clawsec-nanoclaw: Yes; metadata capabilities include agent-initiated vulnerability scans.
+  - Hermes
+    - hermes-attestation-guardian: Unknown; not evidenced in skill metadata/docs.
+
+- Chain of supply verification
+  - OpenClaw
+    - claw-release: Yes; documented release verification.
+    - clawsec-clawhub-checker: Yes; documented guarded-install reputation gate.
+    - clawsec-feed: Yes; documented signature/checksum verification for feed artifacts.
+    - clawsec-suite: Yes; metadata evidences cryptographic signature verification and guarded install flow.
+    - clawsec-scanner: Unknown; not evidenced in skill metadata/docs.
+    - clawtributor: Unknown; not evidenced in skill metadata/docs.
+    - openclaw-audit-watchdog: Unknown; not evidenced in skill metadata/docs.
+    - soul-guardian: Unknown; not evidenced in skill metadata/docs.
+  - NanoClaw
+    - clawsec-nanoclaw: Yes; metadata capabilities include pre-install safety checks and Ed25519 verification.
+  - Hermes
+    - hermes-attestation-guardian: Unknown; not evidenced in skill metadata/docs.
+
+Concise per-skill capability summary:
+- claw-release (OpenClaw): chain of supply verification = Yes; security feed/config drift/agent self pen testing = Unknown.
+- clawsec-clawhub-checker (OpenClaw + integration): chain of supply verification = Yes; security feed/config drift/agent self pen testing = Unknown.
+- clawsec-feed (OpenClaw): security feed = Yes; chain of supply verification = Yes; config drift/agent self pen testing = Unknown.
+- clawsec-nanoclaw (NanoClaw): security feed = Yes; agent self pen testing = Yes; chain of supply verification = Yes; config drift = Unknown.
+- clawsec-scanner (OpenClaw): agent self pen testing = Yes; security feed/config drift/chain of supply verification = Unknown.
+- clawsec-suite (OpenClaw): security feed = Yes; chain of supply verification = Yes; config drift/agent self pen testing = Unknown.
+- clawtributor (OpenClaw): all tracked features = Unknown.
+- hermes-attestation-guardian (Hermes): config drift = Yes; security feed/agent self pen testing/chain of supply verification = Unknown.
+- openclaw-audit-watchdog (OpenClaw): all tracked features = Unknown.
+- soul-guardian (OpenClaw): config drift = Yes; security feed/agent self pen testing/chain of supply verification = Unknown.
+
+Note: `Unknown` means the capability is not evidenced in current `skill.json` metadata or in embedded capability/description text; it is not treated as a confirmed absence.
 
 ### Highest-risk incompatibilities
 1. **(Fixed)** Literal `$HOME` path creation risk in audit watchdog cron setup payload generation.
