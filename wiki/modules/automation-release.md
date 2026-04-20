@@ -9,15 +9,11 @@
 ## CI/CD Summary (migrated from README)
 
 ### Automated workflows
-| Workflow | Trigger | Description |
-| --- | --- | --- |
-| **ci.yml** | PRs to `main`, pushes to `main` | Lint/type/build + skill test suites |
-| **pages-verify.yml** | PRs to `main` | Verifies Pages build and signing outputs without publishing |
-| **poll-nvd-cves.yml** | Daily cron (06:00 UTC) | Polls NVD for new CVEs and updates feed artifacts |
-| **community-advisory.yml** | Issue labeled `advisory-approved` | Processes community reports into advisories |
-| **skill-release.yml** | Skill tags + metadata PR changes | Validates version parity in PRs and publishes signed skill releases on tags |
-| **deploy-pages.yml** | `workflow_run` after successful trusted CI/release or manual dispatch | Builds and deploys the web interface to GitHub Pages |
-| **wiki-sync.yml** | Pushes to `main` touching `wiki/**` | Syncs `wiki/` to the GitHub Wiki mirror |
+The canonical CI/CD workflow matrix (triggers + responsibilities) is maintained in `CLAUDE.md` under "CI Workflows".
+
+This module intentionally focuses on automation/release-specific workflow behavior and operational details. Additional module-relevant workflows not listed in the core matrix include:
+- `pages-verify.yml` (PR-only Pages build/signing verification without publish)
+- `wiki-sync.yml` (syncs repository `wiki/` content to GitHub Wiki)
 
 ### Skill release pipeline behavior
 When a skill is tagged (for example, `soul-guardian-v1.0.0`), the pipeline:

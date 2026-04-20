@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -421,6 +422,81 @@ async function testRefreshUpdatesStateAndAttestationReadableStatus() {
   });
 }
 
+async function testRefreshWritesCachedFeedAtomicallyWithTrailingNewline() {
+  await withTempDir(async (tempDir) => {
+    const hermesHome = path.join(tempDir, ".hermes");
+    const advisoryDir = path.join(tempDir, "advisories-src");
+    const cachedFeedPath = path.join(hermesHome, "security", "advisories", "feed-cache.json");
+    await fs.mkdir(advisoryDir, { recursive: true });
+
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
+    const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
+    const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" });
+
+    const feedRaw = `${JSON.stringify(createFeedPayload(), null, 2)}\n\n`;
+    const feedPath = path.join(advisoryDir, "feed.json");
+    const signaturePath = `${feedPath}.sig`;
+
+    await fs.writeFile(feedPath, feedRaw, "utf8");
+    await fs.writeFile(signaturePath, `${signPayload(feedRaw, privateKeyPem)}\n`, "utf8");
+
+    const originalWriteFileSync = fsSync.writeFileSync;
+    const originalRenameSync = fsSync.renameSync;
+    const writes = [];
+    const renames = [];
+
+    fsSync.writeFileSync = function patchedWriteFileSync(filePath, data, ...rest) {
+      writes.push({ filePath: String(filePath), data: String(data) });
+      return originalWriteFileSync.call(this, filePath, data, ...rest);
+    };
+
+    fsSync.renameSync = function patchedRenameSync(fromPath, toPath) {
+      renames.push({ fromPath: String(fromPath), toPath: String(toPath) });
+      return originalRenameSync.call(this, fromPath, toPath);
+    };
+
+    try {
+      await withPatchedEnv(
+        {
+          HERMES_HOME: hermesHome,
+        },
+        async () => {
+          const result = await refreshAdvisoryFeed({
+            source: "local",
+            localFeedPath: feedPath,
+            localSignaturePath: signaturePath,
+            localChecksumsPath: path.join(advisoryDir, "checksums.json"),
+            localChecksumsSignaturePath: path.join(advisoryDir, "checksums.json.sig"),
+            cachedFeedPath,
+            publicKeyPem,
+            allowUnsigned: false,
+            verifyChecksumManifest: false,
+          });
+          assert.equal(result.status, "verified");
+        },
+      );
+    } finally {
+      fsSync.writeFileSync = originalWriteFileSync;
+      fsSync.renameSync = originalRenameSync;
+    }
+
+    const cachedRename = renames.find((entry) => entry.toPath === cachedFeedPath);
+    assert.ok(cachedRename, "cached feed must be written via rename into destination path");
+    assert.equal(path.dirname(cachedRename.fromPath), path.dirname(cachedFeedPath));
+    assert.ok(
+      path.basename(cachedRename.fromPath).startsWith(`${path.basename(cachedFeedPath)}.tmp-`),
+      "cached feed temp filename should be derived from destination basename",
+    );
+
+    const cachedWrite = writes.find((entry) => entry.filePath === cachedRename.fromPath);
+    assert.ok(cachedWrite, "cached feed should be written to temp path before rename");
+    assert.equal(cachedWrite.data, `${feedRaw.trimEnd()}\n`, "cached feed should keep single trailing newline semantics");
+
+    const cachedFileRaw = await fs.readFile(cachedFeedPath, "utf8");
+    assert.equal(cachedFileRaw, `${feedRaw.trimEnd()}\n`);
+  });
+}
+
 async function testResolveFeedConfigRejectsOutsideHermesHomeStateAndCachePaths() {
   await withTempDir(async (tempDir) => {
     const hermesHome = path.join(tempDir, ".hermes");
@@ -469,6 +545,7 @@ await testLocalChecksumPartialArtifactsFailClosed();
 await testMissingSignatureFailsClosed();
 await testAllowUnsignedBypass();
 await testRefreshUpdatesStateAndAttestationReadableStatus();
+await testRefreshWritesCachedFeedAtomicallyWithTrailingNewline();
 await testResolveFeedConfigRejectsOutsideHermesHomeStateAndCachePaths();
 
 console.log("feed_verification.test.mjs: ok");

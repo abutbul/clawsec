@@ -562,11 +562,30 @@ export function getFeedVerificationStatus({ statePath = defaultFeedStatePath() }
   };
 }
 
-function writeJsonAtomic(filePath, value) {
+function writeTextAtomic(filePath, content, writeOptions = {}) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
-  fs.writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
-  fs.renameSync(tempPath, filePath);
+  const tempPath = path.join(
+    path.dirname(filePath),
+    `${path.basename(filePath)}.tmp-${process.pid}-${Date.now()}-${crypto.randomUUID()}`,
+  );
+  let renamed = false;
+  try {
+    fs.writeFileSync(tempPath, content, { encoding: "utf8", ...writeOptions });
+    fs.renameSync(tempPath, filePath);
+    renamed = true;
+  } finally {
+    if (!renamed && fs.existsSync(tempPath)) {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // Best-effort cleanup for interrupted atomic writes.
+      }
+    }
+  }
+}
+
+function writeJsonAtomic(filePath, value) {
+  writeTextAtomic(filePath, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
 }
 
 function parseAndValidateFeed(feedRaw, sourceLabel) {
@@ -582,6 +601,40 @@ function parseAndValidateFeed(feedRaw, sourceLabel) {
   }
 
   return payload;
+}
+
+function assertSignedPayload(payloadRaw, signatureRaw, keyPem, failureMessage) {
+  if (!verifySignedPayload(payloadRaw, signatureRaw, keyPem)) {
+    throw new Error(failureMessage);
+  }
+}
+
+function assertCompleteChecksumManifestArtifacts(hasManifest, hasManifestSignature) {
+  if (hasManifest !== hasManifestSignature) {
+    throw new Error("checksum manifest artifacts are partially present; refusing to proceed");
+  }
+}
+
+function verifyChecksumManifestBundle({
+  checksumsRaw,
+  checksumsSignatureRaw,
+  keyPem,
+  checksumsLocation,
+  feedEntry,
+  signatureEntry,
+  feedRaw,
+  signatureRaw,
+}) {
+  assertSignedPayload(
+    checksumsRaw,
+    checksumsSignatureRaw,
+    keyPem,
+    `checksum manifest signature verification failed: ${checksumsLocation}`,
+  );
+
+  const manifest = parseChecksumsManifest(checksumsRaw);
+  verifyChecksumEntry(manifest, feedEntry, feedRaw);
+  verifyChecksumEntry(manifest, signatureEntry, signatureRaw);
 }
 
 export async function loadLocalFeed(config) {
@@ -600,29 +653,26 @@ export async function loadLocalFeed(config) {
     }
 
     const signatureRaw = fs.readFileSync(config.localSignaturePath, "utf8");
-    if (!verifySignedPayload(feedRaw, signatureRaw, keyPem)) {
-      throw new Error(`local feed signature verification failed: ${config.localFeedPath}`);
-    }
+    assertSignedPayload(feedRaw, signatureRaw, keyPem, `local feed signature verification failed: ${config.localFeedPath}`);
 
     if (config.verifyChecksumManifest) {
       const hasChecksums = fs.existsSync(config.localChecksumsPath);
       const hasChecksumsSignature = fs.existsSync(config.localChecksumsSignaturePath);
+      assertCompleteChecksumManifestArtifacts(hasChecksums, hasChecksumsSignature);
 
-      if (hasChecksums !== hasChecksumsSignature) {
-        throw new Error("checksum manifest artifacts are partially present; refusing to proceed");
-      }
-
-      if (hasChecksums && hasChecksumsSignature) {
+      if (hasChecksums) {
         const checksumsRaw = fs.readFileSync(config.localChecksumsPath, "utf8");
         const checksumsSignatureRaw = fs.readFileSync(config.localChecksumsSignaturePath, "utf8");
-        if (!verifySignedPayload(checksumsRaw, checksumsSignatureRaw, keyPem)) {
-          throw new Error(`checksum manifest signature verification failed: ${config.localChecksumsPath}`);
-        }
-        const manifest = parseChecksumsManifest(checksumsRaw);
-        const feedEntry = path.basename(config.localFeedPath);
-        const feedSignatureEntry = path.basename(config.localSignaturePath);
-        verifyChecksumEntry(manifest, feedEntry, feedRaw);
-        verifyChecksumEntry(manifest, feedSignatureEntry, signatureRaw);
+        verifyChecksumManifestBundle({
+          checksumsRaw,
+          checksumsSignatureRaw,
+          keyPem,
+          checksumsLocation: config.localChecksumsPath,
+          feedEntry: path.basename(config.localFeedPath),
+          signatureEntry: path.basename(config.localSignaturePath),
+          feedRaw,
+          signatureRaw,
+        });
         result.checksums_verified = true;
       }
     }
@@ -648,26 +698,27 @@ export async function loadRemoteFeed(config) {
 
   if (!config.allowUnsigned) {
     const signatureRaw = await fetchTextRequired(config.signatureUrl);
-    if (!verifySignedPayload(feedRaw, signatureRaw, keyPem)) {
-      throw new Error(`remote feed signature verification failed: ${config.feedUrl}`);
-    }
+    assertSignedPayload(feedRaw, signatureRaw, keyPem, `remote feed signature verification failed: ${config.feedUrl}`);
 
     if (config.verifyChecksumManifest) {
       const checksumsRaw = await fetchTextOptional(config.checksumsUrl);
       const checksumsSignatureRaw = await fetchTextOptional(config.checksumsSignatureUrl);
+      const hasChecksums = checksumsRaw !== null;
+      const hasChecksumsSignature = checksumsSignatureRaw !== null;
+      assertCompleteChecksumManifestArtifacts(hasChecksums, hasChecksumsSignature);
 
-      if (checksumsRaw !== null || checksumsSignatureRaw !== null) {
-        if (checksumsRaw === null || checksumsSignatureRaw === null) {
-          throw new Error("checksum manifest artifacts are partially present; refusing to proceed");
-        }
-        if (!verifySignedPayload(checksumsRaw, checksumsSignatureRaw, keyPem)) {
-          throw new Error(`checksum manifest signature verification failed: ${config.checksumsUrl}`);
-        }
-        const manifest = parseChecksumsManifest(checksumsRaw);
+      if (hasChecksums) {
         const feedEntry = safeBasename(config.feedUrl, "feed.json");
-        const signatureEntry = safeBasename(config.signatureUrl, `${feedEntry}.sig`);
-        verifyChecksumEntry(manifest, feedEntry, feedRaw);
-        verifyChecksumEntry(manifest, signatureEntry, signatureRaw);
+        verifyChecksumManifestBundle({
+          checksumsRaw,
+          checksumsSignatureRaw,
+          keyPem,
+          checksumsLocation: config.checksumsUrl,
+          feedEntry,
+          signatureEntry: safeBasename(config.signatureUrl, `${feedEntry}.sig`),
+          feedRaw,
+          signatureRaw,
+        });
         result.checksums_verified = true;
       }
     }
@@ -728,8 +779,7 @@ export async function refreshAdvisoryFeed(overrides = {}) {
   }
 
   try {
-    fs.mkdirSync(path.dirname(config.cachedFeedPath), { recursive: true });
-    fs.writeFileSync(config.cachedFeedPath, `${loaded.feedRaw.trimEnd()}\n`, "utf8");
+    writeTextAtomic(config.cachedFeedPath, `${loaded.feedRaw.trimEnd()}\n`);
 
     const state = buildState({
       status: config.allowUnsigned ? "unverified" : "verified",

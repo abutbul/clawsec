@@ -43,7 +43,7 @@ ClawSec is a **complete security skill suite for AI agent platforms**. It provid
 
 ### Skill Feature Matrix
 
-| Skil name | supported platform| security feed| config drift | agent self pen testing| chain of supply verification |
+| Skill name | supported platform| security feed| config drift | agent self pen testing| chain of supply verification |
 |---|---|---|---|---|---|
 | claw-release | OpenClaw | No | No | No | Yes |
 | clawsec-clawhub-checker | OpenClaw + clawsec-suite integration | No | No | No | Yes |

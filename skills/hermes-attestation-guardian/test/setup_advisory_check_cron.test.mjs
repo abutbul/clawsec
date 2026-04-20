@@ -91,6 +91,43 @@ process.exit(2);
   };
 }
 
+async function installSelfDeletingCrontab(tempDir) {
+  const fakeBinDir = path.join(tempDir, "bin-self-delete");
+  const logPath = path.join(tempDir, "crontab.self-delete.log");
+  await fs.mkdir(fakeBinDir, { recursive: true });
+
+  const fakeCrontabPath = path.join(fakeBinDir, "crontab");
+  const fakeCrontab = `#!${process.execPath}
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+const logPath = process.env.CRONTAB_SELF_DELETE_LOG_PATH;
+
+if (args[0] === '-l') {
+  fs.appendFileSync(logPath, 'list\\n', 'utf8');
+  fs.unlinkSync(process.argv[1]);
+  process.stdout.write('# existing line\\n');
+  process.exit(0);
+}
+
+if (args[0] === '-') {
+  fs.appendFileSync(logPath, 'write-ran\\n', 'utf8');
+  process.exit(99);
+}
+
+process.exit(2);
+`;
+
+  await fs.writeFile(fakeCrontabPath, fakeCrontab, { encoding: "utf8", mode: 0o755 });
+
+  return {
+    fakeBinDir,
+    logPath,
+    env: {
+      CRONTAB_SELF_DELETE_LOG_PATH: logPath,
+    },
+  };
+}
+
 await withTempDir(async (tempDir) => {
   const hermesHome = path.join(tempDir, ".hermes");
   const fake = await installFakeCrontab(tempDir, {
@@ -243,5 +280,40 @@ for (const markerCase of [
     assert.equal(writeExists, false, `${markerCase.name}: no written schedule table expected`);
   });
 }
+
+await withTempDir(async (tempDir) => {
+  const hermesHome = path.join(tempDir, ".hermes");
+  const result = runSetup(["--apply", "--every", "6h", "--skill", "clawsec-feed"], {
+    HERMES_HOME: hermesHome,
+    PATH: path.join(tempDir, "missing-bin"),
+  });
+
+  assert.notEqual(result.status, 0, "spawnSync ENOENT while reading crontab should fail");
+  assert.ok(result.stderr.includes("Failed reading schedule table"), result.stderr);
+  assert.ok(result.stderr.includes("code=ENOENT"), result.stderr);
+  assert.ok(result.stderr.includes("message="), result.stderr);
+  assert.ok(result.stderr.includes("stack="), result.stderr);
+});
+
+await withTempDir(async (tempDir) => {
+  const hermesHome = path.join(tempDir, ".hermes");
+  const fake = await installSelfDeletingCrontab(tempDir);
+
+  const result = runSetup(["--apply", "--every", "6h", "--skill", "clawsec-feed"], {
+    HERMES_HOME: hermesHome,
+    PATH: fake.fakeBinDir,
+    ...fake.env,
+  });
+
+  assert.notEqual(result.status, 0, "spawnSync ENOENT while writing crontab should fail");
+  assert.ok(result.stderr.includes("Failed writing schedule table"), result.stderr);
+  assert.ok(result.stderr.includes("code=ENOENT"), result.stderr);
+  assert.ok(result.stderr.includes("message="), result.stderr);
+  assert.ok(result.stderr.includes("stack="), result.stderr);
+
+  const log = await fs.readFile(fake.logPath, "utf8");
+  assert.ok(log.includes("list"), "self-deleting fake crontab should run for list before write failure");
+  assert.equal(log.includes("write-ran"), false, "write command should fail before executing fake crontab");
+});
 
 console.log("setup_advisory_check_cron.test.mjs: ok");

@@ -230,6 +230,10 @@ await withTempDir(async (tempDir) => {
   const semverCases = [
     { label: "caret-accept", versionSpec: "^1.2.3", candidateVersion: "1.9.0", expectedStatus: 42 },
     { label: "caret-reject-major-bump", versionSpec: "^1.2.3", candidateVersion: "2.0.0", expectedStatus: 0 },
+    { label: "caret-zero-minor-accept", versionSpec: "^0.2.3", candidateVersion: "0.2.99", expectedStatus: 42 },
+    { label: "caret-zero-minor-reject", versionSpec: "^0.2.3", candidateVersion: "0.3.0", expectedStatus: 0 },
+    { label: "caret-zero-zero-patch-accept", versionSpec: "^0.0.3", candidateVersion: "0.0.3", expectedStatus: 42 },
+    { label: "caret-zero-zero-patch-reject", versionSpec: "^0.0.3", candidateVersion: "0.0.99", expectedStatus: 0 },
     { label: "tilde-accept", versionSpec: "~1.2.3", candidateVersion: "1.2.9", expectedStatus: 42 },
     { label: "tilde-reject-minor-bump", versionSpec: "~1.2.3", candidateVersion: "1.3.0", expectedStatus: 0 },
     { label: "wildcard-accept", versionSpec: "1.2.*", candidateVersion: "1.2.99", expectedStatus: 42 },

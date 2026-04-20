@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getFeedVerificationStatus, resolveFeedConfig } from "./feed.mjs";
+import { defaultFeedStatePath, getFeedVerificationStatus } from "./feed.mjs";
 
 export const SCHEMA_VERSION = "0.0.1";
 export const SKILL_NAME = "hermes-attestation-guardian";
@@ -215,6 +215,40 @@ function normalizePath(input, hermesHome) {
   return path.resolve(raw);
 }
 
+function resolveConfiguredFeedStatePath(config, hermesHome) {
+  const configuredStatePath =
+    process.env.HERMES_ADVISORY_FEED_STATE_PATH
+    || config?.advisory_feed?.state_path
+    || config?.security?.advisory_feed?.state_path;
+
+  if (typeof configuredStatePath !== "string" || !configuredStatePath.trim()) {
+    return defaultFeedStatePath(hermesHome);
+  }
+
+  const candidate = normalizePath(configuredStatePath, hermesHome);
+  if (!candidate) {
+    return defaultFeedStatePath(hermesHome);
+  }
+
+  return isPathInside(candidate, hermesHome) ? candidate : defaultFeedStatePath(hermesHome);
+}
+
+function readFeedVerificationStateSafe(config, hermesHome) {
+  const safeStatePath = resolveConfiguredFeedStatePath(config, hermesHome);
+
+  try {
+    return getFeedVerificationStatus({ statePath: safeStatePath });
+  } catch {
+    return {
+      status: "unknown",
+      available: false,
+      checked_at: null,
+      state_path: safeStatePath,
+      source: null,
+    };
+  }
+}
+
 function fileFingerprint(filePath) {
   if (!filePath) {
     return { path: filePath, exists: false, sha256: null };
@@ -247,10 +281,7 @@ export function buildAttestation({
     bypass_verification: configBool(config?.security?.bypass_verification, readEnvBool("HERMES_BYPASS_VERIFICATION", false)),
   };
 
-  const feedConfig = resolveFeedConfig({});
-  const feedVerificationState = getFeedVerificationStatus({
-    statePath: feedConfig.statePath,
-  });
+  const feedVerificationState = readFeedVerificationStateSafe(config, hermesHome);
   const normalizedFeedStatus = feedVerificationState.status;
 
   const selectedPolicy = policy || { watch_files: [], trust_anchor_files: [] };

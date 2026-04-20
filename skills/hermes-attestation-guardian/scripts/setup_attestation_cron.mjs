@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { detectHermesHome, resolveHermesScopedOutputPath } from "../lib/attestation.mjs";
+import { cadenceToCron, orchestrateManagedCronRun } from "../lib/cron.mjs";
 
 const MARKER_START = "# >>> hermes-attestation-guardian >>>";
 const MARKER_END = "# <<< hermes-attestation-guardian <<<";
@@ -107,33 +107,6 @@ function parseArgs(argv) {
   return args;
 }
 
-function cadenceToCron(cadence) {
-  const normalized = String(cadence || "").trim().toLowerCase();
-  const match = normalized.match(/^(\d+)([hd])$/);
-  if (!match) {
-    throw new Error(`Invalid cadence '${cadence}'. Expected <number>h or <number>d.`);
-  }
-
-  const n = Number(match[1]);
-  const unit = match[2];
-
-  if (!Number.isInteger(n) || n <= 0) {
-    throw new Error(`Cadence must be a positive integer: ${cadence}`);
-  }
-
-  if (unit === "h") {
-    if (n > 24) {
-      throw new Error("Hourly cadence cannot exceed 24h for cron expression generation.");
-    }
-    return `0 */${n} * * *`;
-  }
-
-  if (n > 31) {
-    throw new Error("Daily cadence cannot exceed 31d for cron expression generation.");
-  }
-  return `0 2 */${n} * *`;
-}
-
 function escapeForShell(value) {
   return String(value).replace(/'/g, "'\\''");
 }
@@ -176,66 +149,6 @@ function buildCronBlock({ cronExpr, command, hermesHome }) {
   ].join("\n");
 }
 
-function removeManagedBlock(text) {
-  const lines = String(text || "").split(/\r?\n/);
-  const out = [];
-
-  let inManagedBlock = false;
-  let managedStartLine = null;
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    if (trimmed === MARKER_START) {
-      if (inManagedBlock) {
-        throw new Error(`Malformed schedule markers: nested managed block start at line ${i + 1}`);
-      }
-      inManagedBlock = true;
-      managedStartLine = i + 1;
-      continue;
-    }
-
-    if (trimmed === MARKER_END) {
-      if (!inManagedBlock) {
-        throw new Error(`Malformed schedule markers: unmatched managed block end at line ${i + 1}`);
-      }
-      inManagedBlock = false;
-      managedStartLine = null;
-      continue;
-    }
-
-    if (!inManagedBlock) {
-      out.push(line);
-    }
-  }
-
-  if (inManagedBlock) {
-    throw new Error(`Malformed schedule markers: managed block start at line ${managedStartLine} has no end marker`);
-  }
-
-  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
-}
-
-function readCurrentCrontab() {
-  const res = spawnSync(SCHEDULE_BIN, ["-l"], { encoding: "utf8" });
-  if (res.status !== 0) {
-    const stderr = String(res.stderr || "").toLowerCase();
-    if (/\bno\s+crontab\b/.test(stderr) || stderr.includes(`can't open your ${SCHEDULE_BIN}`)) {
-      return "";
-    }
-    throw new Error(`Failed reading schedule table: ${res.stderr || res.stdout}`);
-  }
-  return res.stdout || "";
-}
-
-function writeCrontab(content) {
-  const res = spawnSync(SCHEDULE_BIN, ["-"], { input: `${content.trim()}\n`, encoding: "utf8" });
-  if (res.status !== 0) {
-    throw new Error(`Failed writing schedule table: ${res.stderr || res.stdout}`);
-  }
-}
-
 function run() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -276,19 +189,16 @@ function run() {
     `- Policy: ${args.policy ? path.resolve(args.policy) : "not configured"}`,
     "- Scope: Hermes-only.",
   ];
-  process.stdout.write(`${preflightLines.join("\n")}\n\n`);
 
-  if (args.printOnly) {
-    process.stdout.write(`${block}\n`);
-    return;
-  }
-
-  const current = readCurrentCrontab();
-  const withoutManaged = removeManagedBlock(current);
-  const merged = [withoutManaged, block].filter(Boolean).join("\n\n").trim();
-  writeCrontab(merged);
-
-  process.stdout.write("INFO: Updated user schedule table with hermes-attestation-guardian managed block\n");
+  orchestrateManagedCronRun({
+    preflightLines,
+    printOnly: args.printOnly,
+    block,
+    markerStart: MARKER_START,
+    markerEnd: MARKER_END,
+    scheduleBin: SCHEDULE_BIN,
+    successMessage: "INFO: Updated user schedule table with hermes-attestation-guardian managed block",
+  });
 }
 
 try {
