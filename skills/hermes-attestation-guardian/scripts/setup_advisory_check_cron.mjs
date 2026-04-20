@@ -3,7 +3,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { detectHermesHome } from "../lib/attestation.mjs";
-import { cadenceToCron, orchestrateManagedCronRun } from "../lib/cron.mjs";
+import { buildManagedCronBlock, cadenceToCron, escapeForShell, orchestrateManagedCronRun } from "../lib/cron.mjs";
 
 const MARKER_START = "# >>> hermes-attestation-guardian-advisory-check >>>";
 const MARKER_END = "# <<< hermes-attestation-guardian-advisory-check <<<";
@@ -98,10 +98,6 @@ function parseArgs(argv) {
   return args;
 }
 
-function escapeForShell(value) {
-  return String(value).replace(/'/g, "'\\''");
-}
-
 function buildCronCommand({ skill, version, allowUnsigned }) {
   const scriptDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
   const guardedVerify = path.join(scriptDir, "guarded_skill_verify.mjs");
@@ -121,20 +117,6 @@ function buildCronCommand({ skill, version, allowUnsigned }) {
   return pieces.join(" ").trim();
 }
 
-function buildCronBlock({ cronExpr, command, hermesHome }) {
-  const envPrefix = [
-    `HERMES_HOME='${escapeForShell(hermesHome)}'`,
-    `PATH='${escapeForShell(process.env.PATH || "/usr/local/bin:/usr/bin:/bin")}'`,
-  ].join(" ");
-
-  return [
-    MARKER_START,
-    `# Managed by hermes-attestation-guardian advisory check helper (${new Date().toISOString()})`,
-    `${cronExpr} ${envPrefix} ${command}`,
-    MARKER_END,
-  ].join("\n");
-}
-
 function run() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -149,7 +131,14 @@ function run() {
     version: args.version,
     allowUnsigned: args.allowUnsigned,
   });
-  const block = buildCronBlock({ cronExpr, command, hermesHome });
+  const block = buildManagedCronBlock({
+    markerStart: MARKER_START,
+    markerEnd: MARKER_END,
+    managedBy: "hermes-attestation-guardian advisory check helper",
+    cronExpr,
+    command,
+    hermesHome,
+  });
 
   const preflightLines = [
     "Preflight review:",

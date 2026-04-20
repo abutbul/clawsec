@@ -68,6 +68,24 @@ export function removeManagedBlock(text, { markerStart, markerEnd }) {
   return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+export function escapeForShell(value) {
+  return String(value).replace(/'/g, "'\\''");
+}
+
+export function buildManagedCronBlock({ markerStart, markerEnd, managedBy, cronExpr, command, hermesHome }) {
+  const envPrefix = [
+    `HERMES_HOME='${escapeForShell(hermesHome)}'`,
+    `PATH='${escapeForShell(process.env.PATH || "/usr/local/bin:/usr/bin:/bin")}'`,
+  ].join(" ");
+
+  return [
+    markerStart,
+    `# Managed by ${managedBy} (${new Date().toISOString()})`,
+    `${cronExpr} ${envPrefix} ${command}`,
+    markerEnd,
+  ].join("\n");
+}
+
 function formatSpawnFailure(action, res) {
   const details = [];
 
