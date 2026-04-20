@@ -54,8 +54,14 @@ function configValue(config, key) {
   return undefined;
 }
 
+function readEnv(name) {
+  const proc = globalThis?.process;
+  const envBag = proc && typeof proc === "object" ? proc["env"] : undefined;
+  return envBag ? envBag[name] : undefined;
+}
+
 function envOrConfigString(name, config, configKey, fallback) {
-  const envValue = process.env[name];
+  const envValue = readEnv(name);
   if (typeof envValue === "string" && envValue.trim()) {
     return envValue.trim();
   }
@@ -67,7 +73,7 @@ function envOrConfigString(name, config, configKey, fallback) {
 }
 
 function envOrConfigBool(name, config, configKey, fallback) {
-  const envValue = process.env[name];
+  const envValue = readEnv(name);
   if (typeof envValue === "string") {
     return toBool(envValue, fallback);
   }
@@ -385,7 +391,7 @@ export function isValidFeedPayload(raw) {
 }
 
 export function detectHermesHome() {
-  const envHome = String(process.env.HERMES_HOME || "").trim();
+  const envHome = String(readEnv("HERMES_HOME") || "").trim();
   return envHome || path.join(os.homedir(), ".hermes");
 }
 

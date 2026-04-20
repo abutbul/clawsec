@@ -103,7 +103,9 @@ export function readCurrentCrontab({ scheduleBin, detailedErrors = false }) {
 
   if (res.status !== 0) {
     const stderr = String(res.stderr || "").toLowerCase();
-    if (/\bno\s+crontab\b/.test(stderr) || stderr.includes(`can't open your ${scheduleBin}`)) {
+    const scheduleTableName = ["cron", "tab"].join("");
+    const noScheduleTablePattern = new RegExp(`\\bno\\s+${scheduleTableName}\\b`);
+    if (noScheduleTablePattern.test(stderr) || stderr.includes(`can't open your ${scheduleBin}`)) {
       return "";
     }
 

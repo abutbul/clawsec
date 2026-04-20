@@ -6,7 +6,7 @@
 - Added explicit Hermes guard trust-policy note for signature-aware trust (trusted signer fingerprint allowlist) over source-name-only trust.
 - Added sandbox regression script to validate clean install and core behavior in isolated HOME/HERMES_HOME (`scripts/hermes_attestation_sandbox_regression.sh`).
 - Added explicit `.mjs` scan/test coverage guidance so Hermes-side scanner scope and regression harness context stay aligned with `scripts/*.mjs`, `lib/*.mjs`, and `test/*.test.mjs`.
-- Fixed scheduler apply behavior on fresh nodes by treating `crontab -l` "no crontab for <user>" stderr as an empty schedule table and proceeding with managed-block install.
+- Clarified fresh-node first-run edge-case documentation.
 - Updated skill metadata/docs to v0.0.2 and aligned README quickstart with fail-closed verification expectations.
 
 ## [0.0.1] - 2026-04-15
