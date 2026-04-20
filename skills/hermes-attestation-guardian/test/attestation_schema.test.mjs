@@ -213,6 +213,10 @@ async function testAttestationFeedConfigFailuresFallBackToUnknownStatus() {
           attestation.posture.feed_verification.state_path,
           path.join(hermesHome, "security", "advisories", "feed-verification-state.json"),
         );
+        assert.ok(
+          String(attestation.posture.feed_verification.config_warning || "").includes("outside HERMES_HOME"),
+          `expected explicit config warning, got: ${attestation.posture.feed_verification.config_warning}`,
+        );
       },
     );
   });

@@ -221,23 +221,38 @@ function resolveConfiguredFeedStatePath(config, hermesHome) {
     || config?.advisory_feed?.state_path
     || config?.security?.advisory_feed?.state_path;
 
+  const fallbackPath = defaultFeedStatePath(hermesHome);
+
   if (typeof configuredStatePath !== "string" || !configuredStatePath.trim()) {
-    return defaultFeedStatePath(hermesHome);
+    return { statePath: fallbackPath, configWarning: null };
   }
 
   const candidate = normalizePath(configuredStatePath, hermesHome);
   if (!candidate) {
-    return defaultFeedStatePath(hermesHome);
+    return {
+      statePath: fallbackPath,
+      configWarning: "configured advisory state path was empty after normalization; using default path",
+    };
   }
 
-  return isPathInside(candidate, hermesHome) ? candidate : defaultFeedStatePath(hermesHome);
+  if (isPathInside(candidate, hermesHome)) {
+    return { statePath: candidate, configWarning: null };
+  }
+
+  return {
+    statePath: fallbackPath,
+    configWarning: `configured advisory state path rejected (outside HERMES_HOME): ${candidate}`,
+  };
 }
 
 function readFeedVerificationStateSafe(config, hermesHome) {
-  const safeStatePath = resolveConfiguredFeedStatePath(config, hermesHome);
+  const { statePath: safeStatePath, configWarning } = resolveConfiguredFeedStatePath(config, hermesHome);
 
   try {
-    return getFeedVerificationStatus({ statePath: safeStatePath });
+    return {
+      ...getFeedVerificationStatus({ statePath: safeStatePath }),
+      config_warning: configWarning,
+    };
   } catch {
     return {
       status: "unknown",
@@ -245,6 +260,7 @@ function readFeedVerificationStateSafe(config, hermesHome) {
       checked_at: null,
       state_path: safeStatePath,
       source: null,
+      config_warning: configWarning,
     };
   }
 }
@@ -326,6 +342,7 @@ export function buildAttestation({
         checked_at: feedVerificationState.checked_at,
         source: feedVerificationState.source,
         state_path: feedVerificationState.state_path,
+        config_warning: feedVerificationState.config_warning || null,
       },
       integrity: {
         watched_files: watchedFingerprints,

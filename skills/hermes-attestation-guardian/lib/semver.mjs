@@ -6,15 +6,19 @@ export function parseSemver(version) {
   const cleaned = String(version || "")
     .trim()
     .replace(/^v/i, "")
+    .split("+")[0]
     .split("-")[0];
 
-  const parts = cleaned.split(".");
-  if (parts.length === 0) return null;
+  const match = cleaned.match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?$/);
+  if (!match) return null;
 
-  const normalized = parts.slice(0, 3).map((part) => Number.parseInt(part, 10));
-  while (normalized.length < 3) normalized.push(0);
+  const normalized = [
+    Number.parseInt(match[1], 10),
+    Number.parseInt(match[2] || "0", 10),
+    Number.parseInt(match[3] || "0", 10),
+  ];
+
   if (normalized.some((part) => Number.isNaN(part))) return null;
-
   return /** @type {[number, number, number]} */ (normalized);
 }
 
@@ -60,7 +64,7 @@ export function versionMatches(version, rawSpec) {
     return wildcardRegex.test(normalizedVersion);
   }
 
-  const comparatorMatch = spec.match(/^(>=|<=|>|<|=)\s*(.+)$/);
+  const comparatorMatch = spec.match(/^(>=|<=|>|<|=)\s*([vV]?\d+(?:\.\d+){0,2})$/);
   if (comparatorMatch) {
     const operator = comparatorMatch[1];
     const targetVersion = comparatorMatch[2].trim();

@@ -77,6 +77,10 @@ await withTempDir(async (tempDir) => {
     fallbackAttestation.posture.feed_verification.state_path,
     path.join(hermesHome, "security", "advisories", "feed-verification-state.json"),
   );
+  assert.ok(
+    String(fallbackAttestation.posture.feed_verification.config_warning || "").includes("outside HERMES_HOME"),
+    `expected explicit config warning, got: ${fallbackAttestation.posture.feed_verification.config_warning}`,
+  );
 
   const outOfScope = runNode(generatorScript, ["--output", path.join(tempDir, "outside.json")], { HERMES_HOME: hermesHome });
   assert.notEqual(outOfScope.status, 0, "generator must reject out-of-scope --output");
