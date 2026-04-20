@@ -36,6 +36,9 @@ echo "[sandbox] hermes-agent-src=$HERMES_AGENT_SRC"
 echo "[sandbox] skill-src=$SKILL_SRC"
 echo "[sandbox] skill-version=$SKILL_VERSION"
 
+# shellcheck disable=SC2140,SC1078
+# Rationale: Docker inner script is intentionally embedded as a single quoted payload
+# for `bash -lc` so variables expand inside the container runtime (not on host).
 docker run --rm \
   -e HOME=/tmp/hermes-sandbox-home \
   -e HERMES_HOME=/tmp/hermes-sandbox-home \
