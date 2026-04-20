@@ -649,6 +649,44 @@ function verifyChecksumManifestBundle({
   verifyChecksumEntry(manifest, signatureEntry, signatureRaw);
 }
 
+function verifySignedFeedArtifacts({
+  feedRaw,
+  signatureRaw,
+  keyPem,
+  signatureFailureMessage,
+  verifyChecksumManifest,
+  checksumsRaw,
+  checksumsSignatureRaw,
+  checksumsLocation,
+  feedEntry,
+  signatureEntry,
+}) {
+  assertSignedPayload(feedRaw, signatureRaw, keyPem, signatureFailureMessage);
+
+  if (!verifyChecksumManifest) {
+    return false;
+  }
+
+  const hasChecksums = checksumsRaw !== null;
+  const hasChecksumsSignature = checksumsSignatureRaw !== null;
+  assertCompleteChecksumManifestArtifacts(hasChecksums, hasChecksumsSignature);
+  if (!hasChecksums) {
+    return false;
+  }
+
+  verifyChecksumManifestBundle({
+    checksumsRaw,
+    checksumsSignatureRaw,
+    keyPem,
+    checksumsLocation,
+    feedEntry,
+    signatureEntry,
+    feedRaw,
+    signatureRaw,
+  });
+  return true;
+}
+
 export async function loadLocalFeed(config) {
   const feedRaw = fs.readFileSync(config.localFeedPath, "utf8");
   const keyPem = readPublicKeyPem(config);
@@ -665,29 +703,22 @@ export async function loadLocalFeed(config) {
     }
 
     const signatureRaw = fs.readFileSync(config.localSignaturePath, "utf8");
-    assertSignedPayload(feedRaw, signatureRaw, keyPem, `local feed signature verification failed: ${config.localFeedPath}`);
-
-    if (config.verifyChecksumManifest) {
-      const hasChecksums = fs.existsSync(config.localChecksumsPath);
-      const hasChecksumsSignature = fs.existsSync(config.localChecksumsSignaturePath);
-      assertCompleteChecksumManifestArtifacts(hasChecksums, hasChecksumsSignature);
-
-      if (hasChecksums) {
-        const checksumsRaw = fs.readFileSync(config.localChecksumsPath, "utf8");
-        const checksumsSignatureRaw = fs.readFileSync(config.localChecksumsSignaturePath, "utf8");
-        verifyChecksumManifestBundle({
-          checksumsRaw,
-          checksumsSignatureRaw,
-          keyPem,
-          checksumsLocation: config.localChecksumsPath,
-          feedEntry: path.basename(config.localFeedPath),
-          signatureEntry: path.basename(config.localSignaturePath),
-          feedRaw,
-          signatureRaw,
-        });
-        result.checksums_verified = true;
-      }
-    }
+    const hasChecksums = config.verifyChecksumManifest && fs.existsSync(config.localChecksumsPath);
+    const hasChecksumsSignature = config.verifyChecksumManifest && fs.existsSync(config.localChecksumsSignaturePath);
+    const checksumsRaw = hasChecksums ? fs.readFileSync(config.localChecksumsPath, "utf8") : null;
+    const checksumsSignatureRaw = hasChecksumsSignature ? fs.readFileSync(config.localChecksumsSignaturePath, "utf8") : null;
+    result.checksums_verified = verifySignedFeedArtifacts({
+      feedRaw,
+      signatureRaw,
+      keyPem,
+      signatureFailureMessage: `local feed signature verification failed: ${config.localFeedPath}`,
+      verifyChecksumManifest: config.verifyChecksumManifest,
+      checksumsRaw,
+      checksumsSignatureRaw,
+      checksumsLocation: config.localChecksumsPath,
+      feedEntry: path.basename(config.localFeedPath),
+      signatureEntry: path.basename(config.localSignaturePath),
+    });
   }
 
   const payload = parseAndValidateFeed(feedRaw, config.localFeedPath);
@@ -710,30 +741,21 @@ export async function loadRemoteFeed(config) {
 
   if (!config.allowUnsigned) {
     const signatureRaw = await fetchTextRequired(config.signatureUrl);
-    assertSignedPayload(feedRaw, signatureRaw, keyPem, `remote feed signature verification failed: ${config.feedUrl}`);
-
-    if (config.verifyChecksumManifest) {
-      const checksumsRaw = await fetchTextOptional(config.checksumsUrl);
-      const checksumsSignatureRaw = await fetchTextOptional(config.checksumsSignatureUrl);
-      const hasChecksums = checksumsRaw !== null;
-      const hasChecksumsSignature = checksumsSignatureRaw !== null;
-      assertCompleteChecksumManifestArtifacts(hasChecksums, hasChecksumsSignature);
-
-      if (hasChecksums) {
-        const feedEntry = safeBasename(config.feedUrl, "feed.json");
-        verifyChecksumManifestBundle({
-          checksumsRaw,
-          checksumsSignatureRaw,
-          keyPem,
-          checksumsLocation: config.checksumsUrl,
-          feedEntry,
-          signatureEntry: safeBasename(config.signatureUrl, `${feedEntry}.sig`),
-          feedRaw,
-          signatureRaw,
-        });
-        result.checksums_verified = true;
-      }
-    }
+    const checksumsRaw = config.verifyChecksumManifest ? await fetchTextOptional(config.checksumsUrl) : null;
+    const checksumsSignatureRaw = config.verifyChecksumManifest ? await fetchTextOptional(config.checksumsSignatureUrl) : null;
+    const feedEntry = safeBasename(config.feedUrl, "feed.json");
+    result.checksums_verified = verifySignedFeedArtifacts({
+      feedRaw,
+      signatureRaw,
+      keyPem,
+      signatureFailureMessage: `remote feed signature verification failed: ${config.feedUrl}`,
+      verifyChecksumManifest: config.verifyChecksumManifest,
+      checksumsRaw,
+      checksumsSignatureRaw,
+      checksumsLocation: config.checksumsUrl,
+      feedEntry,
+      signatureEntry: safeBasename(config.signatureUrl, `${feedEntry}.sig`),
+    });
   }
 
   const payload = parseAndValidateFeed(feedRaw, config.feedUrl);

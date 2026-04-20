@@ -578,8 +578,47 @@ await testChecksumManifestVerifiesFeedAndSignatureEntries();
 await testLocalChecksumPartialArtifactsFailClosed();
 await testMissingSignatureFailsClosed();
 await testAllowUnsignedBypass();
+async function testLocalChecksumArtifactsIgnoredWhenVerificationDisabled() {
+  await withTempDir(async (tempDir) => {
+    const hermesHome = path.join(tempDir, ".hermes");
+    const advisoryDir = path.join(tempDir, "advisories-src");
+    await fs.mkdir(advisoryDir, { recursive: true });
+
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
+    const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
+    const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" });
+
+    const feedRaw = `${JSON.stringify(createFeedPayload(), null, 2)}\n`;
+    const feedPath = path.join(advisoryDir, "feed.json");
+    const signaturePath = `${feedPath}.sig`;
+    const checksumsPath = path.join(advisoryDir, "checksums.json");
+
+    await fs.writeFile(feedPath, feedRaw, "utf8");
+    await fs.writeFile(signaturePath, `${signPayload(feedRaw, privateKeyPem)}\n`, "utf8");
+    await fs.mkdir(checksumsPath, { recursive: true });
+
+    await withPatchedEnv(
+      { HERMES_HOME: hermesHome },
+      async () => {
+        const result = await refreshAdvisoryFeed({
+          source: "local",
+          localFeedPath: feedPath,
+          localSignaturePath: signaturePath,
+          localChecksumsPath: checksumsPath,
+          localChecksumsSignaturePath: `${checksumsPath}.sig`,
+          publicKeyPem,
+          allowUnsigned: false,
+          verifyChecksumManifest: false,
+        });
+        assert.equal(result.status, "verified");
+      },
+    );
+  });
+}
+
 await testRefreshUpdatesStateAndAttestationReadableStatus();
 await testRefreshWritesCachedFeedAtomicallyWithTrailingNewline();
 await testResolveFeedConfigRejectsOutsideHermesHomeStateAndCachePaths();
+await testLocalChecksumArtifactsIgnoredWhenVerificationDisabled();
 
 console.log("feed_verification.test.mjs: ok");
