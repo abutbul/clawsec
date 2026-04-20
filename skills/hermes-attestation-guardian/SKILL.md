@@ -83,6 +83,15 @@ node scripts/verify_attestation.mjs \
   --signature ~/.hermes/security/attestations/current.json.sig \
   --public-key ~/.hermes/security/keys/attestation-public.pem
 
+# Refresh advisory feed verification state (fail-closed by default)
+node scripts/refresh_advisory_feed.mjs
+
+# Check advisory feed verification + feed summary
+node scripts/check_advisories.mjs
+
+# Optional temporary unsigned bypass (dangerous; emergency-only)
+HERMES_ADVISORY_ALLOW_UNSIGNED_FEED=1 node scripts/refresh_advisory_feed.mjs --allow-unsigned
+
 # Preview scheduler config without mutating user schedule state
 node scripts/setup_attestation_cron.mjs --every 6h --print-only
 
@@ -97,7 +106,7 @@ The generator emits:
 - generator metadata (skill + node version)
 - host metadata (hostname/platform/arch)
 - posture.runtime (gateway enabled flags + risky toggles)
-- posture.feed_verification status (verified|unverified|unknown)
+- posture.feed_verification status (verified|unverified|unknown) sourced from `$HERMES_HOME/security/advisories/feed-verification-state.json`
 - posture.integrity watched_files and trust_anchors (existence + sha256)
 - digests.canonical_sha256 over a stable canonical JSON representation
 
@@ -118,10 +127,21 @@ Severity messages are emitted as INFO / WARNING / CRITICAL style lines.
 
 - `generate_attestation.mjs` writes one JSON file (and optional `.sha256`) under `$HERMES_HOME/security/attestations`.
 - `verify_attestation.mjs` is read-only.
+- `refresh_advisory_feed.mjs` writes verified feed cache + verification state under `$HERMES_HOME/security/advisories`.
+- `check_advisories.mjs` is read-only.
 - `setup_attestation_cron.mjs` is read-only unless `--apply` is provided.
 - `setup_attestation_cron.mjs --apply` rewrites only the current user managed schedule block delimited by:
   - `# >>> hermes-attestation-guardian >>>`
   - `# <<< hermes-attestation-guardian <<<`
+
+## Advisory feed override knobs
+
+- Source selection: `HERMES_ADVISORY_FEED_SOURCE=auto|remote|local`
+- Remote artifacts: `HERMES_ADVISORY_FEED_URL`, `HERMES_ADVISORY_FEED_SIG_URL`, `HERMES_ADVISORY_FEED_CHECKSUMS_URL`, `HERMES_ADVISORY_FEED_CHECKSUMS_SIG_URL`
+- Local artifacts: `HERMES_LOCAL_ADVISORY_FEED`, `HERMES_LOCAL_ADVISORY_FEED_SIG`, `HERMES_LOCAL_ADVISORY_FEED_CHECKSUMS`, `HERMES_LOCAL_ADVISORY_FEED_CHECKSUMS_SIG`
+- Pinned key override: `HERMES_ADVISORY_FEED_PUBLIC_KEY` (default is built-in pinned key)
+- Optional checksum toggle: `HERMES_ADVISORY_VERIFY_CHECKSUM_MANIFEST` (default: enabled)
+- UNSAFE emergency bypass only: `HERMES_ADVISORY_ALLOW_UNSIGNED_FEED=1`
 
 ## Notes
 
@@ -132,6 +152,7 @@ Severity messages are emitted as INFO / WARNING / CRITICAL style lines.
 - Keep `.mjs` paths/extensions stable so scanner scope, SBOM wiring, and test harness references stay valid.
 - Default output root is `~/.hermes/security/attestations/`.
 - No destructive remediation actions (delete/restore/quarantine) are implemented.
+- Advisory feed remote URL allowlisting is not implemented in v0.0.2; operators must explicitly trust configured feed/checksum endpoints.
 - Operator policy file is optional JSON with:
   - `watch_files`: list of file paths
   - `trust_anchor_files`: list of file paths

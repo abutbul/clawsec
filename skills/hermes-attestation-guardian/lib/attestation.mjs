@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { getFeedVerificationStatus, resolveFeedConfig } from "./feed.mjs";
 
 export const SCHEMA_VERSION = "0.0.1";
 export const SKILL_NAME = "hermes-attestation-guardian";
@@ -246,10 +247,11 @@ export function buildAttestation({
     bypass_verification: configBool(config?.security?.bypass_verification, readEnvBool("HERMES_BYPASS_VERIFICATION", false)),
   };
 
-  const feedStatus = String(
-    process.env.HERMES_FEED_VERIFICATION_STATUS || config?.feed_verification?.status || "unknown",
-  ).toLowerCase();
-  const normalizedFeedStatus = ["verified", "unverified", "unknown"].includes(feedStatus) ? feedStatus : "unknown";
+  const feedConfig = resolveFeedConfig({});
+  const feedVerificationState = getFeedVerificationStatus({
+    statePath: feedConfig.statePath,
+  });
+  const normalizedFeedStatus = feedVerificationState.status;
 
   const selectedPolicy = policy || { watch_files: [], trust_anchor_files: [] };
 
@@ -288,8 +290,11 @@ export function buildAttestation({
         risky_toggles: riskyToggles,
       },
       feed_verification: {
-        configured: normalizedFeedStatus !== "unknown",
+        configured: feedVerificationState.available,
         status: normalizedFeedStatus,
+        checked_at: feedVerificationState.checked_at,
+        source: feedVerificationState.source,
+        state_path: feedVerificationState.state_path,
       },
       integrity: {
         watched_files: watchedFingerprints,
