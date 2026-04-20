@@ -57,7 +57,7 @@ export function parseAffectedSpecifier(rawSpecifier) {
 
   const atIndex = specifier.lastIndexOf("@");
   if (atIndex <= 0) {
-    return { name: specifier, versionSpec: "*" };
+    return null;
   }
   if (atIndex === specifier.length - 1) {
     return null;

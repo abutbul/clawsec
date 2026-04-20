@@ -151,6 +151,29 @@ await withTempDir(async (tempDir) => {
     keyPair: keys,
     advisories: [
       {
+        id: "ADV-MALFORMED-AFFECTED",
+        severity: "high",
+        affected: ["missing-at-specifier"],
+      },
+    ],
+  });
+
+  const result = runNode(["--skill", "missing-at-specifier", "--version", "1.0.0"], {
+    ...hermesEnv(tempDir),
+    ...localFeedEnv(artifacts),
+  });
+
+  assert.equal(result.status, 1, `malformed affected entry without '@' must fail closed: ${result.stderr}`);
+  assert.ok(result.stderr.includes("CRITICAL: advisory feed verification failed"), result.stderr);
+});
+
+await withTempDir(async (tempDir) => {
+  const keys = crypto.generateKeyPairSync("ed25519");
+  const artifacts = await writeFeedArtifacts({
+    dir: tempDir,
+    keyPair: keys,
+    advisories: [
+      {
         id: "ADV-CONFIRM",
         severity: "high",
         affected: ["confirm-me@1.0.0"],
