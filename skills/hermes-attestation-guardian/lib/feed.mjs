@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { parseAffectedSpecifier, parseVersionSpec } from "./semver.mjs";
 
 const PINNED_FEED_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAS7nijfMcUoOBCj4yOXJX+GYGv2pFl2Yaha1P4v5Cm6A=
@@ -372,7 +373,12 @@ export function isValidFeedPayload(raw) {
     if (typeof advisory.id !== "string" || !advisory.id.trim()) return false;
     if (typeof advisory.severity !== "string" || !advisory.severity.trim()) return false;
     if (!Array.isArray(advisory.affected)) return false;
-    if (!advisory.affected.every((entry) => typeof entry === "string" && entry.trim())) return false;
+    for (const entry of advisory.affected) {
+      if (typeof entry !== "string" || !entry.trim()) return false;
+      const parsed = parseAffectedSpecifier(entry);
+      if (!parsed || !parsed.name) return false;
+      if (!parseVersionSpec(parsed.versionSpec).supported) return false;
+    }
   }
 
   return true;

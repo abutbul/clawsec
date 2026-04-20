@@ -238,8 +238,9 @@ await withTempDir(async (tempDir) => {
     { label: "tilde-reject-minor-bump", versionSpec: "~1.2.3", candidateVersion: "1.3.0", expectedStatus: 0 },
     { label: "wildcard-accept", versionSpec: "1.2.*", candidateVersion: "1.2.99", expectedStatus: 42 },
     { label: "wildcard-reject", versionSpec: "1.2.*", candidateVersion: "1.3.0", expectedStatus: 0 },
-    { label: "malformed-comparator-reject", versionSpec: ">>1.2.3", candidateVersion: "1.9.0", expectedStatus: 0 },
-    { label: "comparator-set-reject", versionSpec: ">=1 <2", candidateVersion: "1.9.0", expectedStatus: 0 },
+    { label: "malformed-comparator-fail-closed", versionSpec: ">>1.2.3", candidateVersion: "1.9.0", expectedStatus: 1 },
+    { label: "comparator-set-fail-closed", versionSpec: ">=1 <2", candidateVersion: "1.9.0", expectedStatus: 1 },
+    { label: "logical-or-fail-closed", versionSpec: "1.2 || 1.3", candidateVersion: "1.2.5", expectedStatus: 1 },
   ];
 
   for (const semverCase of semverCases) {
@@ -265,6 +266,9 @@ await withTempDir(async (tempDir) => {
       semverCase.expectedStatus,
       `${semverCase.label} expected status ${semverCase.expectedStatus}, got ${result.status}. stderr=${result.stderr}`,
     );
+    if (semverCase.expectedStatus === 1) {
+      assert.ok(result.stderr.includes("CRITICAL: advisory feed verification failed"), result.stderr);
+    }
   }
 });
 

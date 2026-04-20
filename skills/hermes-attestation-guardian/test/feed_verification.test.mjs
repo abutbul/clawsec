@@ -120,6 +120,39 @@ async function testValidSignedLocalFeed() {
   });
 }
 
+async function testUnsupportedAffectedRangesFailClosed() {
+  await withTempDir(async (tempDir) => {
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
+    const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
+    const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" });
+
+    const testSpecs = [">=1 <2", "1.2 || 1.3"];
+    for (const unsupportedSpec of testSpecs) {
+      const payload = createFeedPayload();
+      payload.advisories[0].affected = [`sample-skill@${unsupportedSpec}`];
+      const feedRaw = JSON.stringify(payload, null, 2);
+
+      const feedPath = path.join(tempDir, `feed-${unsupportedSpec.replace(/[^a-z0-9]+/gi, "-")}.json`);
+      const signaturePath = `${feedPath}.sig`;
+
+      await fs.writeFile(feedPath, feedRaw, "utf8");
+      await fs.writeFile(signaturePath, `${signPayload(feedRaw, privateKeyPem)}\n`, "utf8");
+
+      await expectReject(`unsupported affected range '${unsupportedSpec}' must fail closed`, async () => {
+        await loadLocalFeed({
+          localFeedPath: feedPath,
+          localSignaturePath: signaturePath,
+          localChecksumsPath: path.join(tempDir, "checksums.json"),
+          localChecksumsSignaturePath: path.join(tempDir, "checksums.json.sig"),
+          publicKeyPem,
+          allowUnsigned: false,
+          verifyChecksumManifest: false,
+        });
+      });
+    }
+  });
+}
+
 async function testInvalidSignatureFailsClosed() {
   await withTempDir(async (tempDir) => {
     const signerKeys = crypto.generateKeyPairSync("ed25519");
@@ -537,6 +570,7 @@ async function testResolveFeedConfigRejectsOutsideHermesHomeStateAndCachePaths()
 }
 
 await testValidSignedLocalFeed();
+await testUnsupportedAffectedRangesFailClosed();
 await testInvalidSignatureFailsClosed();
 await testChecksumMismatchFails();
 await testChecksumManifestRequiresFeedSignatureEntry();

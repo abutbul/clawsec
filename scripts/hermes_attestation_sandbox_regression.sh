@@ -158,7 +158,7 @@ grep -q \"# >>> hermes-attestation-guardian >>>\" /tmp/cron-preview.log
 
 # Phase 1/2/3 feature coverage: signed advisory feed verify + guarded gating + advisory scheduler helper
 cat > /tmp/feed.json <<EOF
-{\"version\":\"1.0.0\",\"updated\":\"2026-04-20T00:00:00Z\",\"advisories\":[{\"id\":\"CLAW-TEST-0001\",\"severity\":\"high\",\"title\":\"Test advisory\",\"affected\":[\"hermes-attestation-guardian@0.0.2\"],\"action\":\"Do not install without explicit acknowledgement\"}]}
+{\"version\":\"1.0.0\",\"updated\":\"2026-04-20T00:00:00Z\",\"advisories\":[{\"id\":\"CLAW-TEST-0001\",\"severity\":\"high\",\"title\":\"Test advisory\",\"affected\":[\"hermes-attestation-guardian@${SKILL_VERSION}\"],\"action\":\"Do not install without explicit acknowledgement\"}]}
 EOF
 
 node - <<'NODE'
@@ -195,16 +195,16 @@ node \"\$SKILL_DIR/scripts/check_advisories.mjs\" > /tmp/check-advisories.log
 grep -q \"Feed verification state: verified\" /tmp/check-advisories.log
 
 set +e
-node \"\$SKILL_DIR/scripts/guarded_skill_verify.mjs\" --skill hermes-attestation-guardian --version 0.0.2 > /tmp/guarded-no-confirm.log 2>&1
+node \"\$SKILL_DIR/scripts/guarded_skill_verify.mjs\" --skill hermes-attestation-guardian --version "\$SKILL_VERSION" > /tmp/guarded-no-confirm.log 2>&1
 GUARD_CODE=\$?
 set -e
 [ \"\$GUARD_CODE\" -eq 42 ]
 grep -q \"Advisory matches detected\" /tmp/guarded-no-confirm.log
 
-node \"\$SKILL_DIR/scripts/guarded_skill_verify.mjs\" --skill hermes-attestation-guardian --version 0.0.2 --confirm-advisory > /tmp/guarded-confirm.log 2>&1
+node \"\$SKILL_DIR/scripts/guarded_skill_verify.mjs\" --skill hermes-attestation-guardian --version "\$SKILL_VERSION" --confirm-advisory > /tmp/guarded-confirm.log 2>&1
 grep -q \"Advisory feed status: verified\" /tmp/guarded-confirm.log
 
-node \"\$SKILL_DIR/scripts/setup_advisory_check_cron.mjs\" --every 6h --skill hermes-attestation-guardian --version 0.0.2 --print-only > /tmp/advisory-cron-preview.log
+node \"\$SKILL_DIR/scripts/setup_advisory_check_cron.mjs\" --every 6h --skill hermes-attestation-guardian --version "\$SKILL_VERSION" --print-only > /tmp/advisory-cron-preview.log
 grep -q \"Preflight review:\" /tmp/advisory-cron-preview.log
 grep -q \"# >>> hermes-attestation-guardian-advisory-check >>>\" /tmp/advisory-cron-preview.log
 grep -q \"guarded_skill_verify.mjs\" /tmp/advisory-cron-preview.log

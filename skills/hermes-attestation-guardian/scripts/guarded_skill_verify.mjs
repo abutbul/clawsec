@@ -2,7 +2,7 @@
 
 import fs from "node:fs";
 import { refreshAdvisoryFeed } from "../lib/feed.mjs";
-import { versionMatches } from "../lib/semver.mjs";
+import { parseAffectedSpecifier, parseVersionSpec, versionMatches } from "../lib/semver.mjs";
 
 const EXIT_CONFIRM_REQUIRED = 42;
 
@@ -78,21 +78,6 @@ function normalizeSkillName(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function parseAffectedSpecifier(rawSpecifier) {
-  const specifier = String(rawSpecifier || "").trim();
-  if (!specifier) return null;
-
-  const atIndex = specifier.lastIndexOf("@");
-  if (atIndex <= 0) {
-    return { name: specifier, versionSpec: "*" };
-  }
-
-  return {
-    name: specifier.slice(0, atIndex),
-    versionSpec: specifier.slice(atIndex + 1),
-  };
-}
-
 function findAdvisoryMatches(feed, skillName, version = "") {
   const advisories = Array.isArray(feed?.advisories) ? feed.advisories : [];
   const targetName = normalizeSkillName(skillName);
@@ -103,10 +88,19 @@ function findAdvisoryMatches(feed, skillName, version = "") {
     if (affected.length === 0) continue;
 
     const matchedAffected = [];
+    const unsupportedSpecs = [];
     for (const specifier of affected) {
       const parsed = parseAffectedSpecifier(specifier);
       if (!parsed) continue;
       if (normalizeSkillName(parsed.name) !== targetName) continue;
+
+      const parsedSpec = parseVersionSpec(parsed.versionSpec);
+      if (!parsedSpec.supported) {
+        // Fail closed: unsupported range syntax is treated as a match to avoid bypass.
+        matchedAffected.push(specifier);
+        unsupportedSpecs.push(specifier);
+        continue;
+      }
 
       // Conservative default: if operator did not provide --version, any name match gates.
       if (!version || versionMatches(version, parsed.versionSpec)) {
@@ -115,7 +109,7 @@ function findAdvisoryMatches(feed, skillName, version = "") {
     }
 
     if (matchedAffected.length > 0) {
-      matches.push({ advisory, matchedAffected });
+      matches.push({ advisory, matchedAffected, unsupportedSpecs });
     }
   }
 
@@ -134,6 +128,11 @@ function printMatches(matches, args) {
 
     process.stdout.write(`- [${severity}] ${advisoryId}: ${title}\n`);
     process.stdout.write(`  matched: ${match.matchedAffected.join(", ")}\n`);
+    if (Array.isArray(match.unsupportedSpecs) && match.unsupportedSpecs.length > 0) {
+      process.stdout.write(
+        `  warning: unsupported advisory version syntax treated as match (fail-closed): ${match.unsupportedSpecs.join(", ")}\n`,
+      );
+    }
     if (advisory.action) {
       process.stdout.write(`  action: ${advisory.action}\n`);
     }
