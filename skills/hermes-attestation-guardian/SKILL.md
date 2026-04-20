@@ -89,6 +89,12 @@ node scripts/refresh_advisory_feed.mjs
 # Check advisory feed verification + feed summary
 node scripts/check_advisories.mjs
 
+# Guarded advisory-aware skill verification gate (returns 42 on advisory match without explicit confirm)
+node scripts/guarded_skill_verify.mjs --skill some-skill --version 1.2.3
+
+# Explicit operator acknowledgement path for advisory matches
+node scripts/guarded_skill_verify.mjs --skill some-skill --version 1.2.3 --confirm-advisory
+
 # Optional temporary unsigned bypass (dangerous; emergency-only)
 HERMES_ADVISORY_ALLOW_UNSIGNED_FEED=1 node scripts/refresh_advisory_feed.mjs --allow-unsigned
 
@@ -129,6 +135,7 @@ Severity messages are emitted as INFO / WARNING / CRITICAL style lines.
 - `verify_attestation.mjs` is read-only.
 - `refresh_advisory_feed.mjs` writes verified feed cache + verification state under `$HERMES_HOME/security/advisories`.
 - `check_advisories.mjs` is read-only.
+- `guarded_skill_verify.mjs` re-runs feed refresh/verification (same advisory cache + state side effects) and then performs advisory-aware gate checks.
 - `setup_attestation_cron.mjs` is read-only unless `--apply` is provided.
 - `setup_attestation_cron.mjs --apply` rewrites only the current user managed schedule block delimited by:
   - `# >>> hermes-attestation-guardian >>>`
@@ -153,6 +160,7 @@ Severity messages are emitted as INFO / WARNING / CRITICAL style lines.
 - Default output root is `~/.hermes/security/attestations/`.
 - No destructive remediation actions (delete/restore/quarantine) are implemented.
 - Advisory feed remote URL allowlisting is not implemented in v0.0.2; operators must explicitly trust configured feed/checksum endpoints.
+- Guarded advisory version matching currently uses a lightweight comparator parser (`>=`, `<=`, `>`, `<`, `=`, `^`, `~`, wildcard `*`) and does not implement full npm semver range grammar (for example, OR ranges and complex comparator sets).
 - Operator policy file is optional JSON with:
   - `watch_files`: list of file paths
   - `trust_anchor_files`: list of file paths

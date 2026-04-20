@@ -51,6 +51,21 @@ Acceptance criteria
 Objective
 Add guarded verification flow for skill artifacts with advisory-aware gating and explicit operator confirm path.
 
+Planned files (phase-scoped)
+- Create: skills/hermes-attestation-guardian/scripts/guarded_skill_verify.mjs
+- Create: skills/hermes-attestation-guardian/test/guarded_skill_verify.test.mjs
+- Modify: skills/hermes-attestation-guardian/lib/feed.mjs (only if needed for advisory matching helper reuse)
+- Modify: skills/hermes-attestation-guardian/SKILL.md
+- Modify: skills/hermes-attestation-guardian/README.md
+- Modify: skills/hermes-attestation-guardian/skill.json
+
+Acceptance criteria
+- Advisory-aware check can evaluate a candidate skill name/version against verified advisory feed data.
+- Guarded flow exits with a distinct non-zero code on advisory match unless explicit confirm flag is present.
+- Non-matching install candidates pass verification.
+- Behavior is fail-closed when feed verification artifacts are invalid/missing (unless explicit unsigned bypass is set).
+- Tests cover conservative matching (no version), explicit version matching, confirm override, and fail-closed paths.
+
 ### Phase 3 — Scheduler helper integration + docs parity
 Objective
 Add optional scheduler helper for advisory checks and finalize docs/matrix parity language.
@@ -65,6 +80,10 @@ Add optional scheduler helper for advisory checks and finalize docs/matrix parit
 - [x] Phase 1 scrutiny complete
 - [x] Phase 1 fix pass complete
 - [x] Phase 1 validated + committed + pushed
+- [x] Phase 2 builder complete
+- [x] Phase 2 scrutiny complete
+- [x] Phase 2 fix pass complete
+- [x] Phase 2 validated + committed + pushed
 
 ### Phase 1 log
 - Status: COMPLETE
@@ -74,6 +93,15 @@ Add optional scheduler helper for advisory checks and finalize docs/matrix parit
 - Post-fix independent review: APPROVED
 - Controller validation: complete (tests + validate_skill passed)
 - Final verdict: APPROVED for Phase 1
+
+### Phase 2 log
+- Status: COMPLETE
+- Builder run: complete
+- Scrutiny run: complete (initial verdict APPROVED WITH FOLLOW-UPS)
+- Fix run: complete
+- Post-fix independent review: APPROVED
+- Controller validation: complete (tests + validate_skill passed)
+- Final verdict: APPROVED for Phase 2
 
 ### Resume instructions (if cutoff)
 1. Open this file.

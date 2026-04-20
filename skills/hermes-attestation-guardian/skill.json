@@ -67,6 +67,11 @@
         "description": "Display human-readable advisory verification/feed summary"
       },
       {
+        "path": "scripts/guarded_skill_verify.mjs",
+        "required": true,
+        "description": "Advisory-aware guarded skill verification gate with explicit confirmation override"
+      },
+      {
         "path": "scripts/setup_attestation_cron.mjs",
         "required": true,
         "description": "Optional recurring schedule setup for Hermes attestation runs"
@@ -95,6 +100,11 @@
         "path": "test/feed_verification.test.mjs",
         "required": false,
         "description": "Advisory feed signature/checksum verification behavior tests"
+      },
+      {
+        "path": "test/guarded_skill_verify.test.mjs",
+        "required": false,
+        "description": "Advisory-aware guarded verification gate behavior tests"
       }
     ]
   },
@@ -149,6 +159,7 @@
       "hermes trust anchor drift",
       "refresh hermes advisory feed",
       "check hermes advisories",
+      "guarded hermes skill verification",
       "setup hermes attestation cron"
     ]
   }
