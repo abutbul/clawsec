@@ -240,15 +240,42 @@ Quick scenario:
 - Existing crontab has managed start marker with no end marker.
 - Running `--apply` aborts with malformed-marker error and leaves crontab unchanged.
 
+## Current Capability Inventory (as implemented now)
+
+Hermes Attestation Guardian now includes three capability lanes:
+
+1) Attestation + baseline integrity lane
+- Deterministic attestation generation.
+- Fail-closed schema/digest/signature verification.
+- Baseline authenticity requirements and severity-ranked drift diffing.
+- Existing attestation cron helper with managed marker block and print-only default.
+
+2) Advisory feed verification lane (Hermes-native)
+- Signed advisory feed verification with fail-closed defaults.
+- Checksum-manifest + signature verification when artifacts are present.
+- Symmetric fail-closed handling for partial checksum artifact sets.
+- Feed verification state/cache kept under Hermes security paths and read by attestation posture output.
+
+3) Advisory-gated supply-chain lane
+- Guarded skill verification flow with advisory-aware gating.
+- Conservative matching when version is omitted.
+- Explicit confirmation override required to proceed on matched advisories.
+- Optional advisory scheduler helper with print-only default and managed marker apply path.
+
 ## Key Files
 - `skills/hermes-attestation-guardian/skill.json`: metadata, platform scope, operator review notes, SBOM.
 - `skills/hermes-attestation-guardian/SKILL.md`: operator playbook, CLI usage, fail-closed policy.
 - `skills/hermes-attestation-guardian/README.md`: quickstart and practical behavior notes.
 - `skills/hermes-attestation-guardian/lib/attestation.mjs`: canonicalization, digest binding, schema checks, scoped output resolution, policy parsing.
 - `skills/hermes-attestation-guardian/lib/diff.mjs`: baseline drift comparison and severity classification.
+- `skills/hermes-attestation-guardian/lib/feed.mjs`: Hermes advisory feed fetch/load, signature/checksum verification, state/cache handling.
 - `skills/hermes-attestation-guardian/scripts/generate_attestation.mjs`: deterministic attestation generation CLI.
 - `skills/hermes-attestation-guardian/scripts/verify_attestation.mjs`: fail-closed verifier and baseline trust enforcement.
-- `skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs`: cron managed-block helper.
+- `skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs`: attestation cron managed-block helper.
+- `skills/hermes-attestation-guardian/scripts/refresh_advisory_feed.mjs`: refresh + verify advisory feed and update Hermes feed state.
+- `skills/hermes-attestation-guardian/scripts/check_advisories.mjs`: operator-facing advisory/feed status summary.
+- `skills/hermes-attestation-guardian/scripts/guarded_skill_verify.mjs`: advisory-gated guarded verification for candidate skill installs.
+- `skills/hermes-attestation-guardian/scripts/setup_advisory_check_cron.mjs`: advisory scheduled-check helper with print-only default.
 
 ## Public Interfaces
 - `generate_attestation.mjs` CLI
@@ -260,6 +287,18 @@ Quick scenario:
 - `setup_attestation_cron.mjs` CLI
   - Consumer: operators
   - Behavior: prints or applies managed cron block for scheduled generate+verify runs.
+- `refresh_advisory_feed.mjs` CLI
+  - Consumer: operators/automation
+  - Behavior: fetches or loads advisory feed, verifies trust artifacts fail-closed by default, and updates Hermes advisory state/cache.
+- `check_advisories.mjs` CLI
+  - Consumer: operators/automation
+  - Behavior: summarizes advisory feed verification status and current advisory visibility.
+- `guarded_skill_verify.mjs` CLI
+  - Consumer: operators/automation/install wrappers
+  - Behavior: advisory-aware gate for skill name/version candidates; blocks on matches unless explicit confirmation override is provided.
+- `setup_advisory_check_cron.mjs` CLI
+  - Consumer: operators
+  - Behavior: prints or applies managed cron block for scheduled guarded advisory checks.
 - Diff output contract
   - Consumer: operators/CI
   - Behavior: emits severity-ranked drift findings for security triage.
@@ -271,9 +310,13 @@ node skills/hermes-attestation-guardian/test/attestation_schema.test.mjs
 node skills/hermes-attestation-guardian/test/attestation_diff.test.mjs
 node skills/hermes-attestation-guardian/test/attestation_cli.test.mjs
 node skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs
+node skills/hermes-attestation-guardian/test/feed_verification.test.mjs
+node skills/hermes-attestation-guardian/test/guarded_skill_verify.test.mjs
+node skills/hermes-attestation-guardian/test/setup_advisory_check_cron.test.mjs
 ```
 
 ## Update Notes
+- 2026-04-20: Expanded module coverage to include full Hermes capability set: signed advisory-feed verification lane, advisory-gated guarded skill verification lane, and advisory scheduler helper with managed marker block safety.
 - 2026-04-17: Added v0.0.2 release-hardening notes: mandatory release verify triad (`checksums.json`, `checksums.sig`, pinned signing-key fingerprint), Hermes guard signature-aware trust policy note, and sandbox regression coverage for verify-gate + clean install.
 - 2026-04-15: Replaced table-style PR claim mapping with full narrative claim breakdowns (people-speak, wiring, verification, and concrete scenarios per claim).
 
@@ -284,10 +327,18 @@ node skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs
 - skills/hermes-attestation-guardian/CHANGELOG.md
 - skills/hermes-attestation-guardian/lib/attestation.mjs
 - skills/hermes-attestation-guardian/lib/diff.mjs
+- skills/hermes-attestation-guardian/lib/feed.mjs
 - skills/hermes-attestation-guardian/scripts/generate_attestation.mjs
 - skills/hermes-attestation-guardian/scripts/verify_attestation.mjs
 - skills/hermes-attestation-guardian/scripts/setup_attestation_cron.mjs
+- skills/hermes-attestation-guardian/scripts/refresh_advisory_feed.mjs
+- skills/hermes-attestation-guardian/scripts/check_advisories.mjs
+- skills/hermes-attestation-guardian/scripts/guarded_skill_verify.mjs
+- skills/hermes-attestation-guardian/scripts/setup_advisory_check_cron.mjs
 - skills/hermes-attestation-guardian/test/attestation_schema.test.mjs
 - skills/hermes-attestation-guardian/test/attestation_diff.test.mjs
 - skills/hermes-attestation-guardian/test/attestation_cli.test.mjs
 - skills/hermes-attestation-guardian/test/setup_attestation_cron.test.mjs
+- skills/hermes-attestation-guardian/test/feed_verification.test.mjs
+- skills/hermes-attestation-guardian/test/guarded_skill_verify.test.mjs
+- skills/hermes-attestation-guardian/test/setup_advisory_check_cron.test.mjs
