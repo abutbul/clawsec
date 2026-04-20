@@ -103,7 +103,18 @@ node scripts/setup_attestation_cron.mjs --every 6h --print-only
 
 # Apply managed scheduler block
 node scripts/setup_attestation_cron.mjs --every 6h --apply
+
+# Preview advisory check scheduler config (guarded flow, print-only default)
+node scripts/setup_advisory_check_cron.mjs --every 6h --skill some-skill --print-only
+
+# Apply advisory check scheduler block (uses guarded_skill_verify flow)
+node scripts/setup_advisory_check_cron.mjs --every 6h --skill some-skill --version 1.2.3 --apply
+
+# Emergency-only: unsigned bypass for scheduled advisory checks (do not keep enabled)
+node scripts/setup_advisory_check_cron.mjs --every 6h --skill some-skill --allow-unsigned --apply
 ```
+
+WARNING: `--allow-unsigned` in scheduled commands is incident-response only. Remove it immediately after recovery and restore signed advisory verification.
 
 ## Attestation payload (implemented)
 
@@ -140,6 +151,11 @@ Severity messages are emitted as INFO / WARNING / CRITICAL style lines.
 - `setup_attestation_cron.mjs --apply` rewrites only the current user managed schedule block delimited by:
   - `# >>> hermes-attestation-guardian >>>`
   - `# <<< hermes-attestation-guardian <<<`
+- `setup_advisory_check_cron.mjs` is read-only unless `--apply` is provided.
+- `setup_advisory_check_cron.mjs --apply` rewrites only the current user advisory-check managed schedule block delimited by:
+  - `# >>> hermes-attestation-guardian-advisory-check >>>`
+  - `# <<< hermes-attestation-guardian-advisory-check <<<`
+  - generated command path uses `guarded_skill_verify.mjs` (advisory-aware gate), not raw `check_advisories.mjs`
 
 ## Advisory feed override knobs
 

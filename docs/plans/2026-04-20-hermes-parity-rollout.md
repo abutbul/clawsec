@@ -70,6 +70,22 @@ Acceptance criteria
 Objective
 Add optional scheduler helper for advisory checks and finalize docs/matrix parity language.
 
+Planned files (phase-scoped)
+- Create: skills/hermes-attestation-guardian/scripts/setup_advisory_check_cron.mjs
+- Create: skills/hermes-attestation-guardian/test/setup_advisory_check_cron.test.mjs
+- Modify: skills/hermes-attestation-guardian/SKILL.md
+- Modify: skills/hermes-attestation-guardian/README.md
+- Modify: skills/hermes-attestation-guardian/skill.json
+- Modify: README.md (matrix semantics/claims parity wording if needed)
+- Modify: wiki/compatibility-report.md (phase parity wording if needed)
+
+Acceptance criteria
+- Adds advisory scheduler helper with print-only default and explicit apply mode.
+- Generated scheduled command uses Phase 2 guarded verification flow (not raw unsafe checks).
+- Supports baseline-safe marker block/update behavior similar to existing cron helper patterns.
+- Includes tests for print-only output and apply-mode guarded mutation semantics.
+- Updates docs/matrix wording so Hermes capabilities are described precisely (feed verification + guarded verification + attestation scope).
+
 ---
 
 ## Progress checkpoints
@@ -84,6 +100,10 @@ Add optional scheduler helper for advisory checks and finalize docs/matrix parit
 - [x] Phase 2 scrutiny complete
 - [x] Phase 2 fix pass complete
 - [x] Phase 2 validated + committed + pushed
+- [x] Phase 3 builder complete
+- [x] Phase 3 scrutiny complete
+- [x] Phase 3 fix pass complete
+- [x] Phase 3 validated + committed + pushed
 
 ### Phase 1 log
 - Status: COMPLETE
@@ -102,6 +122,15 @@ Add optional scheduler helper for advisory checks and finalize docs/matrix parit
 - Post-fix independent review: APPROVED
 - Controller validation: complete (tests + validate_skill passed)
 - Final verdict: APPROVED for Phase 2
+
+### Phase 3 log
+- Status: COMPLETE
+- Builder run: complete
+- Scrutiny run: complete (initial verdict APPROVED WITH FOLLOW-UPS)
+- Fix run: complete
+- Post-fix independent review: APPROVED
+- Controller validation: complete (tests + validate_skill passed)
+- Final verdict: APPROVED for Phase 3
 
 ### Resume instructions (if cutoff)
 1. Open this file.

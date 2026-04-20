@@ -39,7 +39,7 @@ ClawSec is a **complete security skill suite for AI agent platforms**. It provid
 
 - **OpenClaw** (MoltBot, Clawdbot, and clones) - Full suite with skill installer, file integrity protection, and security audits
 - **NanoClaw** - Containerized WhatsApp bot security with MCP tools for advisory monitoring, signature verification, and file integrity
-- **Hermes** - Hermes-native security skills for attestation generation, fail-closed verification, and baseline drift detection
+- **Hermes** - Hermes-native security skills for signed advisory feed verification, advisory-aware guarded verification, deterministic attestation generation, fail-closed verification, and baseline drift detection
 
 ### Skill Feature Matrix
 

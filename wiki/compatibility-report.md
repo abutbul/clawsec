@@ -10,7 +10,7 @@
 ### Platform support coverage
 - **OpenClaw**: Full suite coverage (`clawsec-suite`, `openclaw-audit-watchdog`, advisory hooks/install paths) and represented in compatibility findings CP-001..CP-010.
 - **NanoClaw**: Dedicated platform package coverage via `skills/clawsec-nanoclaw` and related wiki module/docs.
-- **Hermes**: Dedicated Hermes-native coverage via `skills/hermes-attestation-guardian` (deterministic attestation generation, fail-closed verification, trusted-baseline drift checks, preview-first scheduler helper). This report now explicitly tracks Hermes support scope alongside OpenClaw/NanoClaw.
+- **Hermes**: Dedicated Hermes-native coverage via `skills/hermes-attestation-guardian` (signed advisory feed verification, advisory-aware guarded verification, deterministic attestation generation, fail-closed verification, trusted-baseline drift checks, preview-first scheduler helpers). This report now explicitly tracks Hermes support scope alongside OpenClaw/NanoClaw.
 
 ### PR-200 skill feature/platform matrix (`skills/*/skill.json`)
 
@@ -29,7 +29,7 @@ Feature-centric compatibility matrix (skills × features, with platform context)
   - NanoClaw
     - clawsec-nanoclaw: Yes; metadata capabilities include advisory feed monitoring.
   - Hermes
-    - hermes-attestation-guardian: Unknown; not evidenced in skill metadata/docs.
+    - hermes-attestation-guardian: Yes; metadata/docs evidence signed advisory feed verification and guarded advisory scheduler helper coverage.
 
 - Config drift
   - OpenClaw
@@ -74,7 +74,7 @@ Feature-centric compatibility matrix (skills × features, with platform context)
   - NanoClaw
     - clawsec-nanoclaw: Yes; metadata capabilities include pre-install safety checks and Ed25519 verification.
   - Hermes
-    - hermes-attestation-guardian: Unknown; not evidenced in skill metadata/docs.
+    - hermes-attestation-guardian: Yes; metadata/docs evidence fail-closed advisory verification plus advisory-aware guarded verification gating.
 
 Concise per-skill capability summary:
 - claw-release (OpenClaw): chain of supply verification = Yes; security feed/config drift/agent self pen testing = Unknown.
@@ -84,7 +84,7 @@ Concise per-skill capability summary:
 - clawsec-scanner (OpenClaw): agent self pen testing = Yes; security feed/config drift/chain of supply verification = Unknown.
 - clawsec-suite (OpenClaw): security feed = Yes; chain of supply verification = Yes; config drift/agent self pen testing = Unknown.
 - clawtributor (OpenClaw): all tracked features = Unknown.
-- hermes-attestation-guardian (Hermes): config drift = Yes; security feed/agent self pen testing/chain of supply verification = Unknown.
+- hermes-attestation-guardian (Hermes): security feed = Yes; config drift = Yes; chain of supply verification = Yes; agent self pen testing = Unknown.
 - openclaw-audit-watchdog (OpenClaw): all tracked features = Unknown.
 - soul-guardian (OpenClaw): config drift = Yes; security feed/agent self pen testing/chain of supply verification = Unknown.
 

@@ -14,7 +14,7 @@ Status: implemented (v0.0.2), Hermes-only.
 - Compares baseline vs current attestations with stable severity classification.
 - Provides Hermes-native advisory feed verification state (signed feed + optional checksums) under `$HERMES_HOME/security/advisories`.
 - Adds advisory-aware guarded skill verification flow with conservative name gating and explicit `--confirm-advisory` override.
-- Provides an optional Hermes-oriented cron setup helper (print-only by default).
+- Provides optional Hermes-oriented cron setup helpers (print-only by default) for attestations and guarded advisory checks.
 
 ## Scope boundaries
 
@@ -46,7 +46,10 @@ node scripts/refresh_advisory_feed.mjs
 node scripts/check_advisories.mjs
 node scripts/guarded_skill_verify.mjs --skill some-skill --version 1.2.3
 node scripts/setup_attestation_cron.mjs --every 6h --print-only
+node scripts/setup_advisory_check_cron.mjs --every 6h --skill some-skill --print-only
 ```
+
+Scheduler safety warning: never leave `--allow-unsigned` enabled in recurring advisory check jobs except during short emergency recovery windows.
 
 ## Hermes guard trust policy recommendation
 
@@ -63,6 +66,7 @@ node test/attestation_schema.test.mjs
 node test/attestation_diff.test.mjs
 node test/attestation_cli.test.mjs
 node test/setup_attestation_cron.test.mjs
+node test/setup_advisory_check_cron.test.mjs
 node test/feed_verification.test.mjs
 node test/guarded_skill_verify.test.mjs
 ```
