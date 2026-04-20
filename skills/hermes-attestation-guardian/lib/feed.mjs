@@ -622,8 +622,8 @@ function assertSignedPayload(payloadRaw, signatureRaw, keyPem, failureMessage) {
 }
 
 function assertCompleteChecksumManifestArtifacts(hasManifest, hasManifestSignature) {
-  if (hasManifest !== hasManifestSignature) {
-    throw new Error("checksum manifest artifacts are partially present; refusing to proceed");
+  if (!hasManifest || !hasManifestSignature) {
+    throw new Error("checksum manifest artifacts are required when checksum verification is enabled");
   }
 }
 
@@ -670,9 +670,6 @@ function verifySignedFeedArtifacts({
   const hasChecksums = checksumsRaw !== null;
   const hasChecksumsSignature = checksumsSignatureRaw !== null;
   assertCompleteChecksumManifestArtifacts(hasChecksums, hasChecksumsSignature);
-  if (!hasChecksums) {
-    return false;
-  }
 
   verifyChecksumManifestBundle({
     checksumsRaw,

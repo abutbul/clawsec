@@ -8,6 +8,7 @@ import path from "node:path";
 import {
   getFeedVerificationStatus,
   loadLocalFeed,
+  loadRemoteFeed,
   refreshAdvisoryFeed,
   resolveFeedConfig,
 } from "../lib/feed.mjs";
@@ -90,6 +91,16 @@ async function expectReject(label, run) {
     failed = true;
   }
   assert.equal(failed, true, label);
+}
+
+async function withMockedFetch(mockFetch, run) {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = mockFetch;
+  try {
+    await run();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 }
 
 async function testValidSignedLocalFeed() {
@@ -348,6 +359,74 @@ async function testLocalChecksumPartialArtifactsFailClosed() {
   });
 }
 
+async function testLocalChecksumArtifactsMissingFailClosed() {
+  await withTempDir(async (tempDir) => {
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
+    const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
+    const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" });
+
+    const feedRaw = JSON.stringify(createFeedPayload(), null, 2);
+    const feedPath = path.join(tempDir, "feed.json");
+    const signaturePath = path.join(tempDir, "feed.json.sig");
+
+    await fs.writeFile(feedPath, feedRaw, "utf8");
+    await fs.writeFile(signaturePath, `${signPayload(feedRaw, privateKeyPem)}\n`, "utf8");
+
+    await expectReject("missing checksum manifest and signature must fail closed", async () => {
+      await loadLocalFeed({
+        localFeedPath: feedPath,
+        localSignaturePath: signaturePath,
+        localChecksumsPath: path.join(tempDir, "checksums.json"),
+        localChecksumsSignaturePath: path.join(tempDir, "checksums.json.sig"),
+        publicKeyPem,
+        allowUnsigned: false,
+        verifyChecksumManifest: true,
+      });
+    });
+  });
+}
+
+async function testRemoteChecksumArtifactsMissingFailClosed() {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
+  const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
+  const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" });
+
+  const feedRaw = JSON.stringify(createFeedPayload(), null, 2);
+  const signatureRaw = `${signPayload(feedRaw, privateKeyPem)}\n`;
+
+  await withMockedFetch(
+    async (url) => {
+      const target = String(url);
+      if (target === "https://example.test/feed.json") {
+        return { ok: true, status: 200, text: async () => feedRaw };
+      }
+      if (target === "https://example.test/feed.json.sig") {
+        return { ok: true, status: 200, text: async () => signatureRaw };
+      }
+      if (target === "https://example.test/checksums.json") {
+        return { ok: false, status: 404, text: async () => "" };
+      }
+      if (target === "https://example.test/checksums.json.sig") {
+        return { ok: false, status: 404, text: async () => "" };
+      }
+      throw new Error(`unexpected fetch url: ${target}`);
+    },
+    async () => {
+      await expectReject("remote missing checksum artifacts must fail closed", async () => {
+        await loadRemoteFeed({
+          feedUrl: "https://example.test/feed.json",
+          signatureUrl: "https://example.test/feed.json.sig",
+          checksumsUrl: "https://example.test/checksums.json",
+          checksumsSignatureUrl: "https://example.test/checksums.json.sig",
+          publicKeyPem,
+          allowUnsigned: false,
+          verifyChecksumManifest: true,
+        });
+      });
+    },
+  );
+}
+
 async function testMissingSignatureFailsClosed() {
   await withTempDir(async (tempDir) => {
     const { publicKey } = crypto.generateKeyPairSync("ed25519");
@@ -576,6 +655,8 @@ await testChecksumMismatchFails();
 await testChecksumManifestRequiresFeedSignatureEntry();
 await testChecksumManifestVerifiesFeedAndSignatureEntries();
 await testLocalChecksumPartialArtifactsFailClosed();
+await testLocalChecksumArtifactsMissingFailClosed();
+await testRemoteChecksumArtifactsMissingFailClosed();
 await testMissingSignatureFailsClosed();
 await testAllowUnsignedBypass();
 async function testLocalChecksumArtifactsIgnoredWhenVerificationDisabled() {
