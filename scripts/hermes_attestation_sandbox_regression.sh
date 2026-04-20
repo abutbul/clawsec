@@ -194,10 +194,11 @@ grep -q \"\\\"status\\\":\\\"verified\\\"\" /tmp/refresh-advisory.log
 node \"\$SKILL_DIR/scripts/check_advisories.mjs\" > /tmp/check-advisories.log
 grep -q \"Feed verification state: verified\" /tmp/check-advisories.log
 
-set +e
-node \"\$SKILL_DIR/scripts/guarded_skill_verify.mjs\" --skill hermes-attestation-guardian --version "\$SKILL_VERSION" > /tmp/guarded-no-confirm.log 2>&1
-GUARD_CODE=\$?
-set -e
+if node \"\$SKILL_DIR/scripts/guarded_skill_verify.mjs\" --skill hermes-attestation-guardian --version "\$SKILL_VERSION" > /tmp/guarded-no-confirm.log 2>&1; then
+  GUARD_CODE=0
+else
+  GUARD_CODE=\$?
+fi
 [ \"\$GUARD_CODE\" -eq 42 ]
 grep -q \"Advisory matches detected\" /tmp/guarded-no-confirm.log
 
