@@ -2,7 +2,7 @@
 
 Hermes-only attestation, advisory verification, and guarded verification workflow.
 
-Status: implemented (v0.0.2), Hermes-only.
+Status: implemented (v0.1.0), Hermes-only.
 
 ## Capabilities
 
