@@ -82,4 +82,3 @@
 - skills/clawsec-suite/scripts/guarded_skill_install.mjs
 - skills/openclaw-audit-watchdog/scripts/load_suppression_config.mjs
 - wiki/platform-verification.md
-- wiki/compatibility-report.md

@@ -24,7 +24,6 @@
 - [Signed Feed Migration Plan](migration-signed-feed.md)
 - [Platform Verification Checklist](platform-verification.md)
 - [Cross-Platform Remediation Plan](remediation-plan.md)
-- [Cross-Platform Compatibility Report](compatibility-report.md)
 
 ## Modules
 - [Frontend Web App](modules/frontend-web.md)
@@ -43,6 +42,7 @@
 - [Generation Metadata](GENERATION.md)
 
 ## Update Notes
+- 2026-04-19: Moved NanoClaw platform-support and CI/CD pipeline detail sections out of `README.md` into module pages (`modules/nanoclaw-integration.md`, `modules/automation-release.md`) and left README pointers.
 - 2026-04-16: Added install-guard compatibility note for Hermes Attestation Guardian (community-source install now SAFE without `--force`; behavior unchanged).
 - 2026-04-15: Expanded Hermes Attestation Guardian module page into full narrative, claim-by-claim operator guidance (no claim tables), and added archived draft-history module page.
 - 2026-03-10: Added ClawSec Scanner module documentation and linked it under Modules.

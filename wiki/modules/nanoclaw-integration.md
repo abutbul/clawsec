@@ -6,6 +6,35 @@
 - Maintain host-side cached advisory state with TLS/signature enforcement and IPC-triggered refresh.
 - Protect critical NanoClaw files with baseline drift detection and hash-chained audit trails.
 
+## Platform Support Summary (migrated from README)
+
+ClawSec supports NanoClaw as a containerized WhatsApp-bot deployment model.
+
+### `clawsec-nanoclaw` skill scope
+- Location: `skills/clawsec-nanoclaw/`
+- 9 MCP tools for advisory checks, package-safety checks, signature verification, and integrity monitoring.
+- Automatic advisory feed refresh/caching on a recurring cadence.
+- Platform filtering for NanoClaw-relevant advisories.
+- IPC-based host/container communication model.
+
+### NanoClaw advisory coverage
+The feed and matching pipeline include NanoClaw-relevant terms:
+- `NanoClaw`
+- `WhatsApp-bot`
+- `baileys`
+
+Advisories can be explicitly platform-scoped via:
+- `platforms: ["nanoclaw"]`
+
+### Quick integration checklist
+1. Copy skill files to the NanoClaw deployment.
+2. Integrate MCP tools in the container runtime.
+3. Configure host IPC handlers and advisory cache service.
+4. Restart NanoClaw services.
+
+Install guide:
+- `skills/clawsec-nanoclaw/INSTALL.md`
+
 ## Key Files
 - `skills/clawsec-nanoclaw/skill.json`: NanoClaw package contract and MCP tool registry.
 - `skills/clawsec-nanoclaw/lib/signatures.ts`: secure fetch and Ed25519 verification primitives.

@@ -31,4 +31,3 @@
 - wiki/migration-signed-feed.md
 - wiki/platform-verification.md
 - wiki/remediation-plan.md
-- wiki/compatibility-report.md
