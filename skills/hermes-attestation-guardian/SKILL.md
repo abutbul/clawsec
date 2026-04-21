@@ -3,7 +3,7 @@ name: hermes-attestation-guardian
 version: 0.0.2
 description: Hermes-only runtime security attestation and drift detection skill for operator-managed Hermes infrastructure.
 homepage: https://clawsec.prompt.security
-clawdis:
+hermes:
   emoji: "🛡️"
   requires:
     bins: [node]

@@ -37,6 +37,8 @@ async function withTempDir(run) {
 async function writeFeedArtifacts({ dir, advisories, keyPair, signatureKeyPair = keyPair }) {
   const feedPath = path.join(dir, "feed.json");
   const feedSigPath = `${feedPath}.sig`;
+  const checksumsPath = path.join(dir, "checksums.json");
+  const checksumsSigPath = `${checksumsPath}.sig`;
   const publicKeyPath = path.join(dir, "feed-public.pem");
 
   const feedRaw = JSON.stringify(
@@ -53,10 +55,26 @@ async function writeFeedArtifacts({ dir, advisories, keyPair, signatureKeyPair =
   const signingPrivatePem = signatureKeyPair.privateKey.export({ type: "pkcs8", format: "pem" });
 
   await fs.writeFile(feedPath, feedRaw, "utf8");
-  await fs.writeFile(feedSigPath, `${signPayload(feedRaw, signingPrivatePem)}\n`, "utf8");
+  const feedSignature = `${signPayload(feedRaw, signingPrivatePem)}\n`;
+  await fs.writeFile(feedSigPath, feedSignature, "utf8");
+
+  const sha256 = (value) => crypto.createHash("sha256").update(value, "utf8").digest("hex");
+  const checksumsRaw = JSON.stringify(
+    {
+      files: {
+        [path.basename(feedPath)]: sha256(feedRaw),
+        [path.basename(feedSigPath)]: sha256(feedSignature),
+      },
+    },
+    null,
+    2,
+  );
+  await fs.writeFile(checksumsPath, `${checksumsRaw}\n`, "utf8");
+  await fs.writeFile(checksumsSigPath, `${signPayload(`${checksumsRaw}\n`, signingPrivatePem)}\n`, "utf8");
+
   await fs.writeFile(publicKeyPath, publicKeyPem, "utf8");
 
-  return { feedPath, feedSigPath, publicKeyPath };
+  return { feedPath, feedSigPath, checksumsPath, checksumsSigPath, publicKeyPath };
 }
 
 function hermesEnv(base) {
@@ -66,10 +84,12 @@ function hermesEnv(base) {
   };
 }
 
-function localFeedEnv({ feedPath, feedSigPath, publicKeyPath }) {
+function localFeedEnv({ feedPath, feedSigPath, checksumsPath, checksumsSigPath, publicKeyPath }) {
   return {
     HERMES_LOCAL_ADVISORY_FEED: feedPath,
     HERMES_LOCAL_ADVISORY_FEED_SIG: feedSigPath,
+    HERMES_LOCAL_ADVISORY_FEED_CHECKSUMS: checksumsPath,
+    HERMES_LOCAL_ADVISORY_FEED_CHECKSUMS_SIG: checksumsSigPath,
     HERMES_ADVISORY_FEED_PUBLIC_KEY: publicKeyPath,
   };
 }

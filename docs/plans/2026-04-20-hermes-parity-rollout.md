@@ -18,7 +18,7 @@ Branch
 
 Out-of-scope safety
 - Do not modify unrelated local changes:
-  - scripts/hermes_attestation_sandbox_regression.sh
+  - skills/hermes-attestation-guardian/test/hermes_attestation_sandbox_regression.sh
   - docs/ (other than this plan/progress file)
 
 ---
@@ -77,7 +77,7 @@ Planned files (phase-scoped)
 - Modify: skills/hermes-attestation-guardian/README.md
 - Modify: skills/hermes-attestation-guardian/skill.json
 - Modify: README.md (matrix semantics/claims parity wording if needed)
-- Modify: wiki/compatibility-report.md (phase parity wording if needed)
+- Modify: README.md (matrix semantics/claims parity wording if needed)
 
 Acceptance criteria
 - Adds advisory scheduler helper with print-only default and explicit apply mode.

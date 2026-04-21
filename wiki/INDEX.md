@@ -24,7 +24,6 @@
 - [Signed Feed Migration Plan](migration-signed-feed.md)
 - [Platform Verification Checklist](platform-verification.md)
 - [Cross-Platform Remediation Plan](remediation-plan.md)
-- [Cross-Platform Compatibility Report](compatibility-report.md)
 
 ## Modules
 - [Frontend Web App](modules/frontend-web.md)

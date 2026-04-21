@@ -1,35 +1,23 @@
 # hermes-attestation-guardian
 
-Hermes-only security attestation and drift detection skill.
+Hermes-only attestation, advisory verification, and guarded verification workflow.
 
 Status: implemented (v0.0.2), Hermes-only.
 
-## What it does
+## Capabilities
 
-- Generates deterministic Hermes runtime posture attestations.
-- Verifies attestation schema + canonical digest with fail-closed semantics.
-- Optionally verifies detached signatures using a provided public key.
-- Fails closed on baseline diffing unless baseline authenticity is verified (trusted digest and/or detached signature).
-- Restricts attestation output writes to Hermes attestation scope (`$HERMES_HOME/security/attestations`).
-- Compares baseline vs current attestations with stable severity classification.
-- Provides Hermes-native advisory feed verification state (signed feed + optional checksums) under `$HERMES_HOME/security/advisories`.
-- Adds advisory-aware guarded skill verification flow with conservative name gating and explicit `--confirm-advisory` override.
-- Provides optional Hermes-oriented cron setup helpers (print-only by default) for attestations and guarded advisory checks.
+This skill now covers the full Hermes-side capability set expected from the clawsec-suite parity workstream:
 
-## Scope boundaries
-
-In scope:
-- Hermes environment posture snapshots
-- deterministic baseline diffing
-- fail-closed verification semantics
-- Hermes optional scheduling helper
-
-Out of scope / unsupported (v0.0.2):
-- OpenClaw runtime hooks (unsupported)
-- destructive auto-remediation
-- automatic rollback of runtime configuration
-- remote advisory URL allowlisting is not implemented yet (operator must explicitly trust configured advisory endpoints)
-- guarded advisory version matching does not implement full npm semver range grammar (currently limited to direct comparators, caret/tilde, and wildcard matching)
+- Deterministic runtime posture attestation generation.
+- Fail-closed attestation verification (schema + canonical digest).
+- Optional detached signature verification for attestation artifacts.
+- Authenticated baseline diffing with stable severity classification.
+- Scoped output-path enforcement under `$HERMES_HOME`.
+- Signed advisory feed verification (Ed25519) with optional checksum-manifest verification.
+- Fail-closed advisory verification state persistence under `$HERMES_HOME/security/advisories`.
+- Advisory-aware guarded skill verification with explicit `--confirm-advisory` override.
+- Optional recurring scheduler helpers for attestation and advisory checks (print-only by default, explicit apply mode).
+- Sandboxed end-to-end regression harness for install + verify + advisory gates.
 
 ## Quickstart
 
@@ -37,7 +25,7 @@ Canonical release verification and trust-policy guidance lives in `SKILL.md`:
 - `Mandatory release verification gate (before install)`
 - `Hermes guard trust policy note`
 
-After running that gate, use the commands below.
+After running that gate, use:
 
 ```bash
 node scripts/generate_attestation.mjs
@@ -51,13 +39,13 @@ node scripts/setup_advisory_check_cron.mjs --every 6h --skill some-skill --print
 
 Scheduler safety warning: never leave `--allow-unsigned` enabled in recurring advisory check jobs except during short emergency recovery windows.
 
-## Hermes guard trust policy recommendation
+## Runtime requirements
 
-When installing community-sourced skill bundles, prefer Hermes guard signature-aware trust policy (trusted signer fingerprint allowlist) over source-name-only trust. Unknown signer fingerprints should remain community policy and invalid signatures should stay blocked.
+Required:
+- `node`
 
-## Hermes scan/test context (.mjs coverage)
-
-For canonical `.mjs` scan/test scope guidance, see `SKILL.md` -> `Notes`.
+Optional tooling (for local verification workflows):
+- `openssl`, `bash`, `docker`
 
 ## Tests
 
@@ -69,4 +57,5 @@ node test/setup_attestation_cron.test.mjs
 node test/setup_advisory_check_cron.test.mjs
 node test/feed_verification.test.mjs
 node test/guarded_skill_verify.test.mjs
+bash test/hermes_attestation_sandbox_regression.sh
 ```

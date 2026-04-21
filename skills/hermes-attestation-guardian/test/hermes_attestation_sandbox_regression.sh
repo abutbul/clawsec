@@ -4,7 +4,7 @@ set -euo pipefail
 # Sandbox regression test for hermes-attestation-guardian using an isolated Docker Hermes instance.
 #
 # Usage:
-#   scripts/hermes_attestation_sandbox_regression.sh
+#   skills/hermes-attestation-guardian/test/hermes_attestation_sandbox_regression.sh
 #
 # Optional env overrides:
 #   IMAGE=python:3.11-slim
@@ -14,7 +14,7 @@ set -euo pipefail
 
 IMAGE="${IMAGE:-python:3.11-slim}"
 HERMES_AGENT_SRC="${HERMES_AGENT_SRC:-$HOME/.hermes/hermes-agent}"
-SKILL_SRC="${SKILL_SRC:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/skills/hermes-attestation-guardian}"
+SKILL_SRC="${SKILL_SRC:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 WELL_KNOWN_PORT="${WELL_KNOWN_PORT:-8765}"
 SKILL_VERSION="${SKILL_VERSION:-$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("version", "0.0.2"))' "$SKILL_SRC/skill.json")}"
 

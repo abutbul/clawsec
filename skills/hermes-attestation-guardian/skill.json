@@ -115,6 +115,11 @@
         "path": "test/guarded_skill_verify.test.mjs",
         "required": false,
         "description": "Advisory-aware guarded verification gate behavior tests"
+      },
+      {
+        "path": "test/hermes_attestation_sandbox_regression.sh",
+        "required": false,
+        "description": "Sandboxed end-to-end regression harness for install and verification paths"
       }
     ]
   },
