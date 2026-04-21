@@ -1,6 +1,6 @@
 ---
 name: hermes-attestation-guardian
-version: 0.0.2
+version: 0.1.0
 description: Hermes-only runtime security attestation and drift detection skill for operator-managed Hermes infrastructure.
 homepage: https://clawsec.prompt.security
 hermes:
@@ -28,7 +28,7 @@ Before treating any release install instructions as valid, verify all three inpu
 3) pinned signing public-key fingerprint
 
 ```bash
-BASE="https://github.com/prompt-security/clawsec/releases/download/hermes-attestation-guardian-v0.0.2"
+BASE="https://github.com/prompt-security/clawsec/releases/download/hermes-attestation-guardian-v0.1.0"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
