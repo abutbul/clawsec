@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Shield, AlertTriangle, Github, User, Bot } from 'lucide-react';
+import { AdvisoryPlatformBadge } from '../components/AdvisoryPlatformBadge';
 import { Footer } from '../components/Footer';
 import { Advisory, AdvisoryFeed } from '../types';
+import { getPlatformDescriptor } from '../utils/advisoryPlatforms';
 import {
   ADVISORY_FEED_URL,
   LEGACY_ADVISORY_FEED_URL,
@@ -154,6 +156,13 @@ export const AdvisoryDetail: React.FC = () => {
           <span className="text-sm text-gray-500">
             Published {formatDate(advisory.published)}
           </span>
+          {advisory.platforms?.map((platform) => (
+            <AdvisoryPlatformBadge
+              key={`${advisory.id}-platform-${platform}`}
+              platform={platform}
+              className="text-xs px-2 py-1 rounded"
+            />
+          ))}
         </div>
 
         <h1 className="text-3xl font-bold text-white">{advisory.id}</h1>
@@ -259,6 +268,12 @@ export const AdvisoryDetail: React.FC = () => {
             <dt className="text-gray-500 mb-1">Published</dt>
             <dd className="text-white">{formatDate(advisory.published)}</dd>
           </div>
+          {advisory.platforms && advisory.platforms.length > 0 && (
+            <div className="flex justify-between md:block">
+              <dt className="text-gray-500 mb-1">Platforms</dt>
+              <dd className="text-white">{advisory.platforms.map((platform) => getPlatformDescriptor(platform).label).join(', ')}</dd>
+            </div>
+          )}
           {/* Reporter info - subtle display for community reports */}
           {advisory.reporter && (
             <>

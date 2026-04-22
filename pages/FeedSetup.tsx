@@ -3,7 +3,8 @@ import { Rss, RefreshCw, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Down
 import { Link } from 'react-router-dom';
 import { Footer } from '../components/Footer';
 import { AdvisoryCard } from '../components/AdvisoryCard';
-import { Advisory, AdvisoryFeed } from '../types';
+import { Advisory, AdvisoryFeed, AdvisoryPlatformFilter } from '../types';
+import { isCorePlatformSlug, normalizePlatformSlug } from '../utils/advisoryPlatforms';
 import {
   ADVISORY_FEED_URL,
   LEGACY_ADVISORY_FEED_URL,
@@ -12,25 +13,34 @@ import {
 
 const ITEMS_PER_PAGE = 9;
 
+type SeverityFilter = 'all' | Advisory['severity'];
+type FilterTabOption<T extends string> = { value: T; label: string; active: string; inactive: string };
+
 const SEVERITY_TABS = [
   { value: 'all',      label: 'All',      active: 'bg-clawd-accent text-white',                                    inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-clawd-accent/50' },
   { value: 'critical', label: 'Critical', active: 'bg-red-500/20 text-red-400 border-2 border-red-400',            inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-red-400/50' },
   { value: 'high',     label: 'High',     active: 'bg-orange-500/20 text-orange-400 border-2 border-orange-400',   inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-orange-400/50' },
   { value: 'medium',   label: 'Medium',   active: 'bg-yellow-500/20 text-yellow-400 border-2 border-yellow-400',   inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-yellow-400/50' },
   { value: 'low',      label: 'Low',      active: 'bg-blue-500/20 text-blue-400 border-2 border-blue-400',         inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-blue-400/50' },
-] as const;
+] as const satisfies ReadonlyArray<FilterTabOption<SeverityFilter>>;
 
 const PLATFORM_TABS = [
   { value: 'all',      label: 'All Platforms', active: 'bg-clawd-accent text-white',                                         inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-clawd-accent/50' },
   { value: 'openclaw', label: 'OpenClaw',      active: 'bg-clawd-accent/20 text-clawd-accent border-2 border-clawd-accent',  inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-clawd-accent/50' },
   { value: 'nanoclaw', label: 'NanoClaw',      active: 'bg-clawd-secondary/20 text-clawd-secondary border-2 border-clawd-secondary', inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-clawd-secondary/50' },
-] as const;
+  { value: 'hermes',   label: 'Hermes',        active: 'bg-emerald-500/20 text-emerald-300 border-2 border-emerald-400',      inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-emerald-400/50' },
+  { value: 'other',    label: 'Other',         active: 'bg-clawd-600/40 text-gray-100 border-2 border-clawd-500',            inactive: 'bg-clawd-800 text-gray-400 border border-clawd-700 hover:border-clawd-500/50' },
+] as const satisfies ReadonlyArray<FilterTabOption<AdvisoryPlatformFilter>>;
 
-const FilterTabs: React.FC<{
-  tabs: ReadonlyArray<{ value: string; label: string; active: string; inactive: string }>;
-  selected: string;
-  onSelect: (value: string) => void;
-}> = ({ tabs, selected, onSelect }) => (
+const FilterTabs = <T extends string,>({
+  tabs,
+  selected,
+  onSelect,
+}: {
+  tabs: ReadonlyArray<FilterTabOption<T>>;
+  selected: T;
+  onSelect: (value: T) => void;
+}) => (
   <div className="flex flex-wrap justify-center gap-3 mb-8">
     {tabs.map(({ value, label, active, inactive }) => (
       <button
@@ -52,8 +62,8 @@ export const FeedSetup: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
-  const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
+  const [selectedSeverity, setSelectedSeverity] = useState<SeverityFilter>('all');
+  const [selectedPlatform, setSelectedPlatform] = useState<AdvisoryPlatformFilter>('all');
 
   useEffect(() => {
     const fetchAdvisories = async () => {
@@ -92,10 +102,25 @@ export const FeedSetup: React.FC = () => {
   }, []);
 
   const filteredAdvisories = useMemo(
-    () => advisories.filter((a) =>
-      (selectedSeverity === 'all' || a.severity === selectedSeverity) &&
-      (selectedPlatform === 'all' || !a.platforms?.length || a.platforms.includes(selectedPlatform))
-    ),
+    () => advisories.filter((a) => {
+      if (selectedSeverity !== 'all' && a.severity !== selectedSeverity) {
+        return false;
+      }
+
+      if (selectedPlatform === 'all') {
+        return true;
+      }
+
+      const advisoryPlatforms = (a.platforms ?? [])
+        .map(normalizePlatformSlug)
+        .filter(Boolean);
+
+      if (selectedPlatform === 'other') {
+        return advisoryPlatforms.some((platform) => !isCorePlatformSlug(platform));
+      }
+
+      return advisoryPlatforms.length === 0 || advisoryPlatforms.includes(selectedPlatform);
+    }),
     [advisories, selectedSeverity, selectedPlatform],
   );
 
@@ -132,7 +157,7 @@ export const FeedSetup: React.FC = () => {
         <h1 className="text-3xl md:text-4xl text-white">Security Hardening Feed</h1>
         <p className="text-gray-400 max-w-2xl mx-auto">
           A continuous stream of security advisories from NVD CVE data and staff-approved community reports. 
-          This feed is automatically updated with OpenClaw and NanoClaw-related vulnerabilities and verified security incidents.
+          This feed is automatically updated with OpenClaw, NanoClaw, and Hermes-related vulnerabilities and verified security incidents.
         </p>
         {lastUpdated && (
           <p className="text-xs text-gray-500">
@@ -142,8 +167,16 @@ export const FeedSetup: React.FC = () => {
       </section>
 
       <section>
-        <FilterTabs tabs={SEVERITY_TABS} selected={selectedSeverity} onSelect={setSelectedSeverity} />
-        <FilterTabs tabs={PLATFORM_TABS} selected={selectedPlatform} onSelect={setSelectedPlatform} />
+        <FilterTabs
+          tabs={SEVERITY_TABS}
+          selected={selectedSeverity}
+          onSelect={(value) => setSelectedSeverity(value as SeverityFilter)}
+        />
+        <FilterTabs
+          tabs={PLATFORM_TABS}
+          selected={selectedPlatform}
+          onSelect={(value) => setSelectedPlatform(value as AdvisoryPlatformFilter)}
+        />
 
         {loading ? (
           <div className="flex items-center justify-center py-12">

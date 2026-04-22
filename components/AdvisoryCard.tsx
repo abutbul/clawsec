@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Github } from 'lucide-react';
 import { Advisory } from '../types';
+import { AdvisoryPlatformBadge } from './AdvisoryPlatformBadge';
 
 interface AdvisoryCardProps {
   advisory: Advisory;
@@ -65,6 +66,18 @@ export const AdvisoryCard: React.FC<AdvisoryCardProps> = ({ advisory, formatDate
         {advisory.id}
       </h3>
       <p className="text-sm text-gray-400 line-clamp-3 mb-3">{advisory.title}</p>
+
+      {advisory.platforms && advisory.platforms.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {advisory.platforms.map((platform) => (
+            <AdvisoryPlatformBadge
+              key={`${advisory.id}-${platform}`}
+              platform={platform}
+              className="text-[11px] px-2 py-0.5 rounded"
+            />
+          ))}
+        </div>
+      )}
       
       {/* External link - stop propagation to allow clicking without navigating to detail */}
       {isCommunityReport && advisory.github_issue_url ? (
