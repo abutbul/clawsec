@@ -45,20 +45,22 @@ keyword|NanoClaw
 keyword|WhatsApp-bot
 keyword|baileys
 keyword|hermes workflow
+keyword|Picoclaw
 virtualMatchString|cpe:2.3:a:software-metadata.pub:hermes
+virtualMatchString|cpe:2.3:a:picoclaw:picoclaw
 EOF
 }
 
 nvd_keyword_pattern() {
-  echo 'OpenClaw|clawdbot|Moltbot|openclaw|NanoClaw|nanoclaw|WhatsApp-bot|baileys|HERMES workflow|software publication with rich metadata'
+  echo 'OpenClaw|clawdbot|Moltbot|openclaw|NanoClaw|nanoclaw|WhatsApp-bot|baileys|HERMES workflow|software publication with rich metadata|Picoclaw|picoclaw'
 }
 
 nvd_github_ref_pattern() {
-  echo 'github\.com/openclaw/openclaw|github\.com/qwibitai/nanoclaw|github\.com/softwarepub/hermes'
+  echo 'github\.com/openclaw/openclaw|github\.com/qwibitai/nanoclaw|github\.com/softwarepub/hermes|github\.com/[^/]+/picoclaw'
 }
 
 nvd_cpe_pattern() {
-  echo 'cpe:2\.3:a:software-metadata\.pub:hermes(?::|$)'
+  echo 'cpe:2\.3:a:software-metadata\.pub:hermes(?::|$)|cpe:2\.3:[aho]:[^:]*:picoclaw(?::|$)'
 }
 
 nvd_query_slug() {

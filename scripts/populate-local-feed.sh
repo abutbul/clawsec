@@ -271,6 +271,7 @@ jq --slurpfile existing "$TEMP_DIR/existing_ids.json" '
           (if ($blob | test("github\\.com/openclaw/openclaw|\\bopenclaw\\b|\\bclawdbot\\b|\\bmoltbot\\b")) then ["openclaw@*"] else [] end)
           + (if ($blob | test("github\\.com/qwibitai/nanoclaw|\\bnanoclaw\\b|whatsapp-bot|\\bbaileys\\b")) then ["nanoclaw@*"] else [] end)
           + (if ($blob | test("github\\.com/softwarepub/hermes|cpe:2\\.3:a:software-metadata\\.pub:hermes|\\bhermes workflow\\b|software publication with rich metadata")) then ["hermes@*"] else [] end)
+          + (if ($blob | test("github\\.com/[^/]+/picoclaw|\\bpicoclaw\\b|cpe:2\\.3:[aho]:[^:]*:picoclaw(?::|$)")) then ["picoclaw@*"] else [] end)
         )
     );
 
@@ -286,14 +287,15 @@ jq --slurpfile existing "$TEMP_DIR/existing_ids.json" '
       [
         (if ($targets | map(strings | ascii_downcase | select(startswith("openclaw@") or test("^cpe:2\\.3:[aho]:openclaw:openclaw(?::|$)"))) | length > 0) then "openclaw" else empty end),
         (if ($targets | map(strings | ascii_downcase | select(startswith("nanoclaw@") or test("^cpe:2\\.3:[aho]:[^:]*:nanoclaw(?::|$)"))) | length > 0) then "nanoclaw" else empty end),
-        (if ($targets | map(strings | ascii_downcase | select(startswith("hermes@") or test("^cpe:2\\.3:[aho]:software-metadata\\.pub:hermes(?::|$)"))) | length > 0) then "hermes" else empty end)
+        (if ($targets | map(strings | ascii_downcase | select(startswith("hermes@") or test("^cpe:2\\.3:[aho]:software-metadata\\.pub:hermes(?::|$)"))) | length > 0) then "hermes" else empty end),
+        (if ($targets | map(strings | ascii_downcase | select(startswith("picoclaw@") or test("^cpe:2\\.3:[aho]:[^:]*:picoclaw(?::|$)"))) | length > 0) then "picoclaw" else empty end)
       ]
     );
 
   def normalized_affected:
     (
       matched_targets
-      | if length == 0 then ["openclaw@*", "nanoclaw@*", "hermes@*"] else . end
+      | if length == 0 then ["openclaw@*", "nanoclaw@*", "hermes@*", "picoclaw@*"] else . end
     );
 
   def normalized_platforms:
@@ -304,7 +306,7 @@ jq --slurpfile existing "$TEMP_DIR/existing_ids.json" '
         else
           matched_targets as $targets
           | platforms_from_targets($targets) as $from_targets
-          | if ($from_targets | length) > 0 then $from_targets else ["openclaw", "nanoclaw", "hermes"] end
+          | if ($from_targets | length) > 0 then $from_targets else ["openclaw", "nanoclaw", "hermes", "picoclaw"] end
         end
     );
 
@@ -406,7 +408,7 @@ else
   jq -n --slurpfile advisories "$TEMP_DIR/new_advisories.json" --arg now "$NOW" '{
     version: "1.0.0",
     updated: $now,
-    description: "Community-driven security advisory feed for ClawSec. Automatically updated with OpenClaw, NanoClaw, and Hermes-related CVEs from NVD.",
+    description: "Community-driven security advisory feed for ClawSec. Automatically updated with OpenClaw, NanoClaw, Hermes, and Picoclaw-related CVEs from NVD.",
     advisories: (($advisories[0] // []) | sort_by(.published) | reverse)
   }' > "$TEMP_DIR/updated_feed.json"
 fi
