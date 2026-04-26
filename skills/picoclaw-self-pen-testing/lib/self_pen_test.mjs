@@ -1,5 +1,5 @@
 function add(findings, severity, code, title, evidence, recommendation) { findings.push({ severity, code, title, evidence, recommendation }); }
-export function runPicoclawSelfPenTest(profile, options = {}) {
+export function runPicoclawSelfPenTest(profile, _options = {}) {
   const findings=[]; const rt=profile?.posture?.runtime || {};
   if (rt.ui?.public_web_ui) add(findings,"critical","PUBLIC_WEB_UI_EXPOSED","Web UI appears bound publicly","public_web_ui=true or equivalent detected","Bind to localhost or enforce password auth + CIDR allowlist before exposure.");
   if (rt.ui?.auth_disabled) add(findings,"critical","WEB_UI_AUTH_DISABLED","Web UI auth appears disabled","auth_disabled=true or empty password marker detected","Require password/session auth for any gateway controller UI.");
