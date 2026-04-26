@@ -20,6 +20,10 @@ const PLATFORM_DESCRIPTOR_BY_SLUG: Record<string, PlatformDescriptor> = {
     label: 'Hermes',
     classes: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
   },
+  picoclaw: {
+    label: 'Picoclaw',
+    classes: 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40',
+  },
 };
 
 const CORE_PLATFORM_SET = new Set<string>(CORE_PLATFORM_SLUGS);

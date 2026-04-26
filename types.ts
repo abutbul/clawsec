@@ -28,7 +28,7 @@ export type AdvisoryType =
   // Keep this open for new categories without requiring type updates.
   | string;
 
-export const CORE_PLATFORM_SLUGS = ['openclaw', 'nanoclaw', 'hermes'] as const;
+export const CORE_PLATFORM_SLUGS = ['openclaw', 'nanoclaw', 'hermes', 'picoclaw'] as const;
 export type CorePlatformSlug = (typeof CORE_PLATFORM_SLUGS)[number];
 export type AdvisoryPlatformSlug = CorePlatformSlug | (string & {});
 export type AdvisoryPlatformFilter = 'all' | CorePlatformSlug | 'other';
